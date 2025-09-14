@@ -1,0 +1,23 @@
+- create acc:
+    + terminal 1: 
+        cd /Users/tom/Documents/PROJECTS/vgame/research/golang
+        go run main.go -s "wallet"
+    + terminal 2: 
+        cd /Users/tom/Documents/PROJECTS/vgame/research/golang
+        go run main.go --createacc
+        go run main.go --addbalance
+- start 
+    + terminal 2
+        cd /Users/tom/Documents/PROJECTS/vgame/research/golang/node_server/xrp
+        node start_xrp.js --local 1
+    + terminal 3
+        cd /Users/tom/Documents/PROJECTS/vgame/research/golang/node_server/src
+        node proxy.js
+    + terminal 4
+        cd /Users/tom/Documents/PROJECTS/vgame/research/golang
+        go run main.go -s "game"
+
+
+pm2:
+    pm2 start ./main --name vwallet -- -s "wallet"
+

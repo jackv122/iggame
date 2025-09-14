@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1, minimum-scale=1,maximum-scale=1"/>
+        
+        <script>
+            function refresh(eid)
+            {
+                var table = document.getElementById(eid)[0];
+                var httpReq = new XMLHttpRequest();
+                
+                httpReq.onreadystatechange = function ()
+                {
+                    if (this.readyState == 4 && this.status == 200) {
+                        var table = document.getElementById(eid);
+                        // clear all child but keep the table's header
+                        while (table.children.length > 1) table.removeChild(table.children[1]);
+                        // do nothing incase empty
+                        if (httpReq.responseText == '') return;
+                        var arr = JSON.parse(httpReq.responseText);
+                        for (var i = 0; i < arr.length; i++)
+                        {
+                            let o = arr[i];
+                            var row = [o.userId, o.status, o.token, 1];
+                            var tr = document.createElement('tr');
+                            for (var j = 0; j < row.length; j++)
+                            {
+                                var td = document.createElement('td');
+                                td.style.paddingTop = "5px"
+                                td.style.paddingLeft = "10px"
+                                td.style.paddingRight = "10px"
+                                tr.appendChild(td);
+                                if (j == 1) {
+                                    td.style.color = o.status == 0 ? "green" : "red"
+                                    td.innerHTML = o.status == 0 ? "available" : "online"
+                                }
+                                else if (j == row.length - 1) {
+                                    let btn = document.createElement("BUTTON")
+                                    btn.innerHTML = "play"
+                                    td.appendChild(btn)
+                                    btn.onclick = ()=>{
+                                        //navigator.clipboard.writeText(o.token);
+                                        window.open('https://vgame.vntrend.org/?operator=001&token=' + o.token,'_blank');
+                                    }
+                                }
+                                else td.innerHTML = row[j];
+                            }
+                            table.appendChild(tr);
+                        }
+                    }
+                }
+                //httpReq.open("POST", "https://localhost:8095/service/devtokens");
+                httpReq.open("POST", "https://vgws.vntrend.org:8095/service/devtokens");
+                httpReq.send();
+            }
+
+            function onInit() 
+            {
+                refresh('dataTable');
+            }
+        </script>
+        
+    </head>
+    <body onload=onInit()>
+        <button type="button" onclick="refresh('dataTable');" style="margin-top:10px">refresh</button>
+        <table id=dataTable>
+            <tr>
+                <th>userId</th>
+                <th>status</th>
+                <th>token</th>
+                <th></th>
+            </tr>
+        </table>
+    </body>
+</html>
