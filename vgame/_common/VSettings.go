@@ -16,7 +16,7 @@ type VSettings struct {
 
 func (setting *VSettings) init() *VSettings {
 	setting.OPERATORS = map[OperatorID]*OperatorInfo{}
-	setting.OPERATORS["001"] = &OperatorInfo{ID: "001", Name: "Huy"}
+	setting.OPERATORS["001"] = &OperatorInfo{ID: "001", Name: "IGGame"}
 	return setting
 }
 

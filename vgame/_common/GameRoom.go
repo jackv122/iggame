@@ -20,9 +20,9 @@ type BetPlace struct {
 }
 
 type RoomConfig struct {
-	RoomId      RoomId
-	limitLevel  LimitLevel
-	limitBetMap map[Currency]map[BetKind]*BetLimit
+	RoomId      RoomId                             `json:"roomId"`
+	LimitLevel  LimitLevel                         `json:"limitLevel"`
+	limitBetMap map[Currency]map[BetKind]*BetLimit `json:"-"`
 }
 
 type UserBetInfo struct {

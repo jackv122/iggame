@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -12,10 +14,10 @@ import (
 )
 
 type GameConfig struct {
-	GameId      GameId
-	FrameTime   float64
-	OperatorIds []OperatorID
-	RoomConfigs []RoomConfig
+	GameId      GameId       `json:"gameId"`
+	FrameTime   float64      `json:"frameTime"`
+	OperatorIds []OperatorID `json:"operatorIds"`
+	RoomConfigs []RoomConfig `json:"roomConfigs"`
 }
 
 type ConnectionInfo struct {
@@ -43,37 +45,65 @@ func (info *ConnectionInfo) leaveRoom(roomId RoomId) {
 }
 
 type ServerConfig struct {
-	serverFrameTime float64
-	workerNum       int
-	GameConfigMap   map[GameId]*GameConfig
+	ServerFrameTime float64                `json:"serverFrameTime"`
+	WorkerNum       int                    `json:"workerNum"`
+	Games           []GameConfig           `json:"games"`
+	GameConfigMap   map[GameId]*GameConfig `json:"-"`
 }
 
 func (c *ServerConfig) Init() *ServerConfig {
-	c.serverFrameTime = 1.0 / 5.0
-	//c.serverFrameTime = 1.0
-	c.workerNum = 4
+	// Load configuration from JSON file
+	configPath := "config/game_config.json"
+
+	// Check if config file exists, if not use default values
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		fmt.Printf("Config file %s not found, using default values\n", configPath)
+		c.loadDefaultConfig()
+		return c
+	}
+
+	// Read and parse JSON config
+	jsonData, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		fmt.Printf("Error reading config file: %v, using default values\n", err)
+		c.loadDefaultConfig()
+		return c
+	}
+
+	// Directly unmarshal into the Go structure
+	err = json.Unmarshal(jsonData, c)
+	if err != nil {
+		fmt.Printf("Error parsing config file: %v, using default values\n", err)
+		c.loadDefaultConfig()
+		return c
+	}
+
+	c.GameConfigMap = map[GameId]*GameConfig{}
+	for i := range c.Games {
+		c.GameConfigMap[c.Games[i].GameId] = &c.Games[i]
+	}
+
+	return c
+}
+
+func (c *ServerConfig) loadDefaultConfig() {
+	c.ServerFrameTime = 1.0 / 5.0
+	c.WorkerNum = 4
 	c.GameConfigMap = map[GameId]*GameConfig{}
 
-	// Roulette ---------------
+	// Default Roulette configuration
 	RouletteConf := GameConfig{GameId: IDRoulette, FrameTime: 1.0}
-	c.GameConfigMap[RouletteConf.GameId] = &RouletteConf
 	RouletteConf.OperatorIds = []OperatorID{}
 	for _, info := range GlobalSettings.OPERATORS {
 		RouletteConf.OperatorIds = append(RouletteConf.OperatorIds, info.ID)
 	}
-	RouletteConf.RoomConfigs = []RoomConfig{{RoomId: "001001", limitLevel: LIMIT_LEVEL_LOW}, {RoomId: "001002", limitLevel: LIMIT_LEVEL_NORMAL}}
-	/*
-		// GameA ---------------
-		GameAConf := GameConfig{GameId: IDGameA, FrameTime: 1.0}
-		c.GameConfigMap[GameAConf.GameId] = &GameAConf
-		GameAConf.OperatorIds = []OperatorID{}
-		for _, info := range GlobalSettings.OPERATORS {
-			GameAConf.OperatorIds = append(RouletteConf.OperatorIds, info.ID)
-		}
-		GameAConf.RoomConfigs = []RoomConfig{{roomId: "002001", limitLevel: LIMIT_LEVEL_LOW}, {roomId: "002002", limitLevel: LIMIT_LEVEL_NORMAL}}
-	*/
+	RouletteConf.RoomConfigs = []RoomConfig{
+		{RoomId: "001001", LimitLevel: LIMIT_LEVEL_LOW},
+		{RoomId: "001002", LimitLevel: LIMIT_LEVEL_NORMAL},
+	}
 
-	return c
+	c.Games = []GameConfig{RouletteConf}
+	c.GameConfigMap[RouletteConf.GameId] = &c.Games[0]
 }
 
 type Task struct {
@@ -346,7 +376,7 @@ func (server *GameServer) startServerUpdate() {
 		server.connMessageMap = map[ConnectionId][]*string{}
 	}
 
-	VUtils.RepeatCall(update, GameServerConfig.serverFrameTime, 0, server.timeKeeper)
+	VUtils.RepeatCall(update, GameServerConfig.ServerFrameTime, 0, server.timeKeeper)
 }
 
 func (s *GameServer) testVsocket() {
@@ -440,7 +470,7 @@ func (s *GameServer) Start() {
 		game := GetGameInterface(gameConf.GameId, s)
 		for _, OperatorId := range gameConf.OperatorIds {
 			for _, roomConf := range gameConf.RoomConfigs {
-				roomConf.limitBetMap = game.GetBetLimit(roomConf.limitLevel)
+				roomConf.limitBetMap = game.GetBetLimit(roomConf.LimitLevel)
 				room := s.RoomMng.CreateRoom(gameConf.GameId, OperatorId, roomConf, s)
 				if room == nil {
 					continue
@@ -462,6 +492,7 @@ func (s *GameServer) Start() {
 	// make sure all DB and server initialize successfully before start process client messages
 
 	for GameId := range s.gameMap {
+		fmt.Println("starting GameId ", GameId)
 		game := GetGameInterface(GameId, s)
 		game.Start()
 	}

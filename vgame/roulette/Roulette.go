@@ -113,6 +113,7 @@ func (g *Roulette) suffleArr() {
 }
 
 func (g *Roulette) Start() {
+	fmt.Println("Roulette start")
 	trends := g.server.LoadTrends(g.gameId, 0)
 	if trends != nil {
 		g.trends = trends
@@ -124,6 +125,7 @@ func (g *Roulette) Start() {
 }
 
 func (g *Roulette) onStartComplete() {
+	fmt.Println("Roulette start complete")
 	g.stateMng.Start()
 	gameConf := com.GameServerConfig.GameConfigMap[g.gameId]
 	com.VUtils.RepeatCall(g.Update, gameConf.FrameTime, 0, g.GetTimeKeeper())
@@ -162,7 +164,6 @@ func (g *Roulette) LoadGameState() bool {
 	g.stateMng.SetState(currState, statetime)
 
 	// reload all bettings
-
 	gameConf := com.GameServerConfig.GameConfigMap[g.gameId]
 	loadRequestCount := len(gameConf.OperatorIds)
 	for _, operatorId := range gameConf.OperatorIds {
@@ -179,7 +180,7 @@ func (g *Roulette) LoadGameState() bool {
 				room := g.server.RoomMng.GetRoom(operatorId, roomConf.RoomId)
 				room.ResumeBetting(res.Bettings)
 			}
-
+			fmt.Println("loadRequestCount ===")
 			loadRequestCount--
 			if loadRequestCount == 0 {
 				g.onStartComplete()
@@ -214,6 +215,7 @@ func (g *Roulette) onTick() {
 
 func (g *Roulette) onEnterState(state com.GameState) {
 	// only broadcast for the users joined room already, so use room to broadcast insteak
+	fmt.Println("onEnterState ", state)
 	switch state {
 	case com.GAME_STATE_STARTING:
 		g.roundId++
@@ -424,6 +426,7 @@ func (g *Roulette) genResult() {
 	go func() {
 		maxTry := 3
 		for tryCount := 0; tryCount < maxTry; tryCount++ {
+			fmt.Println("genresult tryCount ", tryCount)
 			apiUrl := com.BLOCKCHAIN_URL + "?sender=a10&amount=" + fmt.Sprintf("%06d", g.GetRoundId())
 			// create new http request
 			response, err := http.Get(apiUrl)

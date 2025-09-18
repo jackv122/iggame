@@ -12,7 +12,7 @@ type RoundId uint32
 type SeatId uint8
 type BetKind uint8
 type Currency string
-type LimitLevel uint8
+type LimitLevel uint
 type EncryptType uint8
 type GameState uint8
 
@@ -32,8 +32,8 @@ type BlockChainTxResult struct {
 }
 
 const (
-	IDRoulette GameId = "001"
-	IDGameA    GameId = "002"
+	IDRoulette GameId = "Roulette_01"
+	IDGameA    GameId = "GameA_01"
 
 	GAME_ENCRYPT      = 0
 	PROXY_ENCRYPT     = 1
