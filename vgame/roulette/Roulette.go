@@ -230,7 +230,7 @@ func (g *Roulette) onEnterState(state com.GameState) {
 		g.w = ""
 		g.tickTime = 0
 		g.resultNum = -1
-		if g.roundId > com.MAX_ROUND {
+		if g.roundId > com.RoundId(com.MAX_ROUND) {
 			g.roundId = 1
 		}
 		// create a new game state and delete the old one
@@ -622,9 +622,9 @@ func (game *Roulette) GetAllBetLimits() []map[com.Currency]map[com.BetKind]*com.
 
 func (game *Roulette) GetBetLimit(level com.LimitLevel) map[com.Currency]map[com.BetKind]*com.BetLimit {
 	switch level {
-	case com.LIMIT_LEVEL_LOW:
+	case com.LIMIT_LEVEL_SMALL:
 		return game.LowLimitBetMap
-	case com.LIMIT_LEVEL_NORMAL:
+	case com.LIMIT_LEVEL_MEDIUM:
 		return game.NormalLimitBetMap
 	}
 

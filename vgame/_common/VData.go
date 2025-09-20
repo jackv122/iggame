@@ -41,8 +41,8 @@ const (
 )
 
 const (
-	LIMIT_LEVEL_LOW    = 0
-	LIMIT_LEVEL_NORMAL = 1
+	LIMIT_LEVEL_SMALL  = 0
+	LIMIT_LEVEL_MEDIUM = 1
 )
 
 type SecureInt struct {

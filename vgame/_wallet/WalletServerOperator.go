@@ -36,7 +36,7 @@ func (s *WalletServerOperator) Start(operatorId com.OperatorID) {
 	//hash := Hashcom.Amount(2, 12)
 	//fmt.Println("md5 hash len ", hash)
 	s.operatorId = operatorId
-	schemaName := com.WALLET_SCHEMA + "_" + operatorId
+	schemaName := com.WALLET_SCHEMA + "_" + string(operatorId)
 	connStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true", com.WALLET_MYSQL_USER, com.WALLET_MYSQL_KEY, com.WALLET_MYSQL_HOST, schemaName)
 	fmt.Println("Wallet start schemaName ", schemaName)
 	db, err := sql.Open("mysql", connStr)
@@ -140,7 +140,7 @@ func (s *WalletServerOperator) LoadDB() bool {
 }
 
 func (s *WalletServerOperator) findUid() com.UserId {
-	for i := com.UserId(1); i < com.MAX_ACCOUNT; i++ {
+	for i := com.UserId(1); i < com.UserId(com.MAX_ACCOUNT); i++ {
 		_, ok := s.userMap[i]
 		if !ok {
 			return i
@@ -769,8 +769,8 @@ func (s *WalletServerOperator) loadHistoryTcp(vs *com.VSocket, requestId uint64,
 }
 
 func (s *WalletServerOperator) loadHistory(gameId com.GameId, userId com.UserId, page uint32) []*com.HistoryRecord {
-	startRow := page * com.HIS_PAGE_SIZE
-	endRow := (page + 1) * com.HIS_PAGE_SIZE
+	startRow := page * uint32(com.HIS_PAGE_SIZE)
+	endRow := (page + 1) * uint32(com.HIS_PAGE_SIZE)
 	query := "SELECT gamenumber, roundid, betdetail, result, payout, updatetime FROM betting WHERE gameid=? AND userid=? AND payedout=1 ORDER BY updatetime DESC LIMIT ?, ?"
 	rows, err := s.db.Query(query, gameId, userId, startRow, endRow)
 	if err != nil {

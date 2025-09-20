@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-const (
+var (
 	vtestEncryptPort = PROXY_TCP_PORT
 )
 

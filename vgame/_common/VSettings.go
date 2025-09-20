@@ -22,7 +22,8 @@ func (setting *VSettings) init() *VSettings {
 
 var GlobalSettings = (&VSettings{}).init()
 
-const (
+// Runtime configurable variables (can be assigned from JSON)
+var (
 	WALLET_SCHEMA    = "vwallet"
 	GAME_SCHEMA      = "vgame"
 	WALLET_HOST      = "127.0.0.1" // for security always config it as a LAN ip

@@ -1,0 +1,44 @@
+{
+	"operators": {
+		"001": {
+			"id": "001",
+			"name": "IGGame"
+		}
+	},
+	"database": {
+		"walletSchema": "vwallet",
+		"gameSchema": "vgame",
+		"walletUser": "root",
+		"walletPassword": "hailuava12a6",
+		"walletHost": "127.0.0.1:3306",
+		"gameUser": "root",
+		"gamePassword": "hailuava12a6",
+		"gameHost": "127.0.0.1:3306"
+	},
+	"network": {
+		"walletHost": "127.0.0.1",
+		"walletPort": "8092",
+		"walletHttpPort": "8099",
+		"proxyTcpHost": "127.0.0.1",
+		"proxyTcpPort": "8093",
+		"proxyWssPort": "8094",
+		"blockchainUrl": "http://localhost:8088/xrp"
+	},
+	"security": {
+		"hashKey": "hailuava12a6",
+		"maxAdminConn": 1000
+	},
+	"game": {
+		"batchMessage": false,
+		"maxAccount": 9999999,
+		"maxRound": 9999,
+		"roomIdLength": 6,
+		"operatorIdLength": 3,
+		"trendPageSize": 70,
+		"hisPageSize": 20,
+		"vsocketSendTimeout": "20s"
+	},
+	"tables": {
+		"walletTable": "wallet"
+	}
+}

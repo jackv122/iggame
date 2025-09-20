@@ -18,6 +18,7 @@ type GameConfig struct {
 	FrameTime   float64      `json:"frameTime"`
 	OperatorIds []OperatorID `json:"operatorIds"`
 	RoomConfigs []RoomConfig `json:"roomConfigs"`
+	Active      bool         `json:"active"`
 }
 
 type ConnectionInfo struct {
@@ -92,14 +93,14 @@ func (c *ServerConfig) loadDefaultConfig() {
 	c.GameConfigMap = map[GameId]*GameConfig{}
 
 	// Default Roulette configuration
-	RouletteConf := GameConfig{GameId: IDRoulette, FrameTime: 1.0}
+	RouletteConf := GameConfig{GameId: IDRoulette, FrameTime: 1.0, Active: true}
 	RouletteConf.OperatorIds = []OperatorID{}
 	for _, info := range GlobalSettings.OPERATORS {
 		RouletteConf.OperatorIds = append(RouletteConf.OperatorIds, info.ID)
 	}
 	RouletteConf.RoomConfigs = []RoomConfig{
-		{RoomId: "001001", LimitLevel: LIMIT_LEVEL_LOW},
-		{RoomId: "001002", LimitLevel: LIMIT_LEVEL_NORMAL},
+		{RoomId: "Roulette_01_small", LimitLevel: LIMIT_LEVEL_SMALL},
+		{RoomId: "Roulette_01_medium", LimitLevel: LIMIT_LEVEL_MEDIUM},
 	}
 
 	c.Games = []GameConfig{RouletteConf}
@@ -452,6 +453,10 @@ func (s *GameServer) Start() {
 	limitMap := map[GameId]([](map[Currency]map[BetKind]*BetLimit)){}
 	roomIdMap := map[GameId][]RoomId{}
 	for _, gameConf := range GameServerConfig.GameConfigMap {
+		// Only create game instances that are active
+		if !gameConf.Active {
+			continue
+		}
 
 		GameFactory(gameConf.GameId, s)
 
@@ -467,6 +472,11 @@ func (s *GameServer) Start() {
 
 	// init rooms ---
 	for _, gameConf := range GameServerConfig.GameConfigMap {
+		// Only create rooms for active games
+		if !gameConf.Active {
+			continue
+		}
+
 		game := GetGameInterface(gameConf.GameId, s)
 		for _, OperatorId := range gameConf.OperatorIds {
 			for _, roomConf := range gameConf.RoomConfigs {
@@ -624,8 +634,8 @@ func (s *GameServer) SaveGameResult(gameNumber GameNumber, GameId GameId, roundI
 }
 
 func (s *GameServer) LoadTrends(GameId GameId, page uint32) []*TrendItem {
-	startRow := page * TREND_PAGE_SIZE
-	endRow := (page + 1) * TREND_PAGE_SIZE
+	startRow := page * uint32(TREND_PAGE_SIZE)
+	endRow := (page + 1) * uint32(TREND_PAGE_SIZE)
 	query := fmt.Sprintf("SELECT gamenumber, roundid, result, tx, w FROM trend WHERE gameid='%s' AND result>'' ORDER BY updatetime DESC LIMIT %d, %d", GameId, startRow, endRow)
 	//fmt.Println("query == ", query)
 	rows, err := s.DB.Query(query)
