@@ -1,15 +1,9 @@
 package com
 
 type GameA struct {
-	server     *GameServer
-	gameId     GameId
-	name       string
-	timeKeeper *TimeKeeper
-
-	payedout   bool
-	gameNumber GameNumber // need to gen on state STARTING
-	isStarted  bool
-	trends     []*TrendItem
+	BaseGame
+	payedout  bool
+	isStarted bool
 }
 
 func (g *GameA) Start() {
@@ -22,11 +16,7 @@ func (g *GameA) InitRoomForGame(room *GameRoom) {
 
 // work as constructor
 func (g *GameA) Init(server *GameServer) *GameA {
-	g.server = server
-	g.gameId = IDGameA
-	g.name = "GameA"
-	g.timeKeeper = &TimeKeeper{}
-	g.trends = []*TrendItem{}
+	g.InitBase(server, IDGameA, "GameA")
 	return g
 }
 
@@ -46,33 +36,13 @@ func (game *GameA) OnMessage(connId ConnectionId, msg string) {
 }
 
 func (game *GameA) Stop() {
-	if game.timeKeeper.Timer != nil {
-		game.timeKeeper.Timer.Stop()
+	if game.TimeKeeper.Timer != nil {
+		game.TimeKeeper.Timer.Stop()
 	}
-}
-
-func (game *GameA) GetTimeKeeper() *TimeKeeper {
-	return game.timeKeeper
 }
 
 func (game *GameA) GetRoundId() RoundId {
 	return 1
-}
-
-func (game *GameA) GetGameNumber() GameNumber {
-	return game.gameNumber
-}
-
-func (game *GameA) GetBetKind(betType BetType) BetKind {
-	return BET_COMMON
-}
-
-func (game *GameA) GetBetLimit(level LimitLevel) map[Currency]map[BetKind]*BetLimit {
-	return nil
-}
-
-func (game *GameA) GetAllBetLimits() []map[Currency]map[BetKind]*BetLimit {
-	return []map[Currency]map[BetKind]*BetLimit{}
 }
 
 func (game *GameA) GetCurState() GameState {
@@ -92,15 +62,7 @@ func (game *GameA) GetGameResult() string {
 }
 
 func (game *GameA) LoadTrends(gameId GameId, page uint32) []*TrendItem {
-	return game.trends
-}
-
-func (game *GameA) GetTxh() string {
-	return ""
-}
-
-func (game *GameA) GetW() string {
-	return ""
+	return game.Trends
 }
 
 func (game *GameA) GetResultString() string {

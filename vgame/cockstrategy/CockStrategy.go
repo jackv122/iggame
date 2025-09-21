@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"strconv"
 	com "vgame/_common"
 )
@@ -22,234 +21,117 @@ type GameInitData struct {
 }
 
 type CockStrategy struct {
-	server     *com.GameServer
-	gameId     com.GameId
-	name       string
-	timeKeeper *com.TimeKeeper
-	roomList   []*com.GameRoom
-
-	roundId  com.RoundId
-	tickTime float64
-
-	resultNum int
-	txh       string
-	w         string
-	stateMng  *com.StateManager
+	com.BaseGame
 	// payout
-	GameData   *CockStrategyData
-	gameNumber com.GameNumber // need to gen on state STARTING
-
-	pathIds []int
-	pathInd int
-	trends  []*com.TrendItem
-
-	tickCount int
-
-	gameInitData GameInitData
+	GameData     *CockStrategyData
+	gameInitData *GameInitData
+	ResultNum    int
 }
 
 // work as constructor
 func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
-	g.server = server
-	g.gameId = com.IDCockStrategy
-	g.name = "CockStrategy"
-	g.roundId = 0
-	g.timeKeeper = &com.TimeKeeper{}
-	g.roomList = []*com.GameRoom{}
+	g.InitBase(server, com.IDCockStrategy, "CockStrategy")
 	gameStates := []com.GameState{com.GAME_STATE_STARTING, com.GAME_STATE_BETTING, com.GAME_STATE_CLOSE_BETTING, com.GAME_STATE_GEN_RESULT, com.GAME_STATE_RESULT, com.GAME_STATE_PAYOUT}
 	stateTimes := []float64{1, 30, 3, 0, 10, 8.0} // 0 mean wait forever
-	g.stateMng = (&com.StateManager{}).Init(gameStates, stateTimes, g.onEnterState, g.onExitState)
-	g.tickTime = 0
-	g.tickCount = 0
-	g.resultNum = -1
-	g.trends = []*com.TrendItem{}
-	g.txh = ""
-	g.w = ""
-
-	pathLength := 24
-	for i := 0; i < pathLength; i++ {
-		g.pathIds = append(g.pathIds, i)
-	}
-	g.suffleArr()
-
-	// payout
-	g.GameData = (&CockStrategyData{}).init()
+	g.StateMng = (&com.StateManager{}).Init(gameStates, stateTimes, g.onEnterState, g.onExitState)
+	g.GameData = (&CockStrategyData{}).init(g)
+	g.ResultNum = -1
 	return g
 }
 
-func (g *CockStrategy) suffleArr() {
-	var t int = 0
-	l := len(g.pathIds)
-	for i := 0; i < l; i++ {
-		ind := int(math.Floor(com.VUtils.GetRandFloat64() * (float64(l) - 0.01)))
-		t = g.pathIds[i]
-		g.pathIds[i] = g.pathIds[ind]
-		g.pathIds[ind] = t
-	}
-}
-
 func (g *CockStrategy) Start() {
-	fmt.Println("CockStrategy start")
-	trends := g.server.LoadTrends(g.gameId, 0)
+	fmt.Printf("%s start\n", g.Name)
+	trends := g.Server.LoadTrends(g.GameId, 0)
 	if trends != nil {
-		g.trends = trends
+		g.Trends = trends
 	}
 	if !g.LoadGameState() {
-		g.stateMng.ResetState()
-		g.onStartComplete()
+		g.StateMng.ResetState()
+		g.OnStartComplete()
 	}
 }
 
-func (g *CockStrategy) onStartComplete() {
+func (g *CockStrategy) OnStartComplete() {
 	fmt.Println("CockStrategy start complete")
-	g.stateMng.Start()
-	gameConf := com.GameServerConfig.GameConfigMap[g.gameId]
+	g.StateMng.Start()
+	gameConf := com.GameServerConfig.GameConfigMap[g.GameId]
 	com.VUtils.RepeatCall(g.Update, gameConf.FrameTime, 0, g.GetTimeKeeper())
 }
 
 func (g *CockStrategy) LoadGameState() bool {
-	row := g.server.DB.QueryRow("SELECT gamenumber, roundid, state, statetime, result, data, tx, w, h FROM gamestate WHERE gameid=?", g.gameId)
-	var gameNumber int
-	var roundId int
-	var state int
-	var stateTime float64
-	var result int
-	var tx string
-	var w string
-	var h string
-	var stateData string
-	err := row.Scan(&gameNumber, &roundId, &state, &stateTime, &result, &stateData, &tx, &w, &h)
+	row := g.Server.DB.QueryRow("SELECT gamenumber, roundid, state, statetime, result, tx, w, h FROM gamestate WHERE gameid=?", g.GameId)
+
+	var currState = com.GameState(com.GAME_STATE_STARTING)
+	result := ""
+	hash := ""
+	statetime := float64(0)
+	err := row.Scan(&g.GameNumber, &g.RoundId, &currState, &statetime, &result, &g.Txh, &g.W, &hash)
 	if err != nil {
+		fmt.Println("not existing previous state data for game ", g.GameId)
 		return false
 	}
-	g.gameNumber = com.GameNumber(gameNumber)
-	g.roundId = com.RoundId(roundId)
-	g.stateMng.CurrState = com.GameState(state)
-	g.stateMng.StateTime = stateTime
-	g.resultNum = result
-	g.txh = tx
-	g.w = w
-	err2 := json.Unmarshal([]byte(stateData), &g.gameInitData)
-	if err2 != nil {
-		com.VUtils.PrintError(err)
-		g.server.Maintenance()
+	str := fmt.Sprintf("%d_%s_%d_%d_%s_%s_%s", g.GameNumber, g.GameId, g.RoundId, currState, result, g.Txh, g.W)
+
+	if hash != com.VUtils.HashString(str) {
+		fmt.Println("Wrong hash for game ", g.GameId)
+		g.Server.Stop()
 		return false
 	}
+	if result != "" {
+		g.ResultNum, err = strconv.Atoi(result)
+		if err != nil {
+			msg := fmt.Sprintf("can not parse game result for gameId %s and result %s ", g.GameId, result)
+			com.VUtils.PrintError(errors.New(msg))
+			g.Server.Maintenance()
+			return true
+		}
+	}
+
+	// resume state
+	g.StateMng.SetState(currState, statetime)
+
+	// reload all bettings
+	gameConf := com.GameServerConfig.GameConfigMap[g.GameId]
+	loadRequestCount := len(gameConf.OperatorIds)
+	for _, operatorId := range gameConf.OperatorIds {
+		param := com.VUtils.WalletLocalMessageUint64(operatorId, com.WCMD_QUERY_BETTING, uint64(g.GameNumber))
+		g.Server.WalletConn.Send(param, func(vs *com.VSocket, requestId uint64, resData []byte) {
+			res := com.QueryBettingResponse{}
+			err := json.Unmarshal(resData, &res)
+			if err != nil {
+				com.VUtils.PrintError(err)
+				g.Server.Maintenance()
+				return
+			}
+			for _, roomConf := range gameConf.RoomConfigs {
+				room := g.Server.RoomMng.GetRoom(operatorId, roomConf.RoomId)
+				room.ResumeBetting(res.Bettings)
+			}
+			fmt.Println("loadRequestCount ===")
+			loadRequestCount--
+			if loadRequestCount == 0 {
+				g.OnStartComplete()
+			}
+		}, nil)
+	}
+
 	return true
 }
 
 func (g *CockStrategy) SaveGameState() {
-	resultStr := strconv.Itoa(g.resultNum)
+	resultStr := strconv.Itoa(g.ResultNum)
 	stateDataStr, err := json.Marshal(g.gameInitData)
 	if err != nil {
 		com.VUtils.PrintError(err)
 		return
 	}
-	str := fmt.Sprintf("%d_%s_%d_%d_%s_%s_%s", g.gameNumber, g.gameId, g.roundId, g.stateMng.CurrState, resultStr, g.txh, g.w)
+	str := fmt.Sprintf("%d_%s_%d_%d_%s_%s_%s", g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, resultStr, g.Txh, g.W)
 	hash := com.VUtils.HashString(str)
-	_, err2 := g.server.DB.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, data=?, tx=?, w=?, h=? WHERE gamenumber=?", g.stateMng.CurrState, g.stateMng.StateTime, resultStr, stateDataStr, g.txh, g.w, hash, g.gameNumber)
+	_, err2 := g.Server.DB.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, data=?, tx=?, w=?, h=? WHERE gamenumber=?", g.StateMng.CurrState, g.StateMng.StateTime, resultStr, stateDataStr, g.Txh, g.W, hash, g.GameNumber)
 	if err2 != nil {
 		com.VUtils.PrintError(err)
-		g.server.Maintenance()
+		g.Server.Maintenance()
 		return
-	}
-}
-
-func (game *CockStrategy) Update(dt float64) {
-	game.stateMng.StateUpdate(dt)
-	game.tickTime += dt
-	if game.tickTime > 1.0 {
-		game.onTick()
-		game.tickTime -= 1.0
-	}
-}
-
-func (g *CockStrategy) Stop() {
-	fmt.Println("CockStrategy stop")
-	g.stateMng.ResetState()
-}
-
-func (g *CockStrategy) GetTimeKeeper() *com.TimeKeeper {
-	return g.timeKeeper
-}
-
-func (g *CockStrategy) GetGameId() com.GameId {
-	return g.gameId
-}
-
-func (g *CockStrategy) GetName() string {
-	return g.name
-}
-
-func (g *CockStrategy) GetRoundId() com.RoundId {
-	return g.roundId
-}
-
-func (g *CockStrategy) GetGameNumber() com.GameNumber {
-	return g.gameNumber
-}
-
-func (g *CockStrategy) GetTrends() []*com.TrendItem {
-	return g.trends
-}
-
-func (g *CockStrategy) GetTrendsByPage(page uint32) []*com.TrendItem {
-	start := page * uint32(com.TREND_PAGE_SIZE)
-	end := start + uint32(com.TREND_PAGE_SIZE)
-	if start >= uint32(len(g.trends)) {
-		return []*com.TrendItem{}
-	}
-	if end > uint32(len(g.trends)) {
-		end = uint32(len(g.trends))
-	}
-	return g.trends[start:end]
-}
-
-func (g *CockStrategy) GetBetKind(betType com.BetType) com.BetKind {
-	return g.GameData.BetKindMap[string(betType)]
-}
-
-func (g *CockStrategy) GetAllBetLimits() []map[com.Currency]map[com.BetKind]*com.BetLimit {
-	limits := []map[com.Currency]map[com.BetKind]*com.BetLimit{g.GameData.SmallLimitBetMap, g.GameData.MediumLimitBetMap}
-	return limits
-}
-
-func (g *CockStrategy) GetBetLimit(level com.LimitLevel) map[com.Currency]map[com.BetKind]*com.BetLimit {
-	switch level {
-	case com.LIMIT_LEVEL_SMALL:
-		return g.GameData.SmallLimitBetMap
-	case com.LIMIT_LEVEL_MEDIUM:
-		return g.GameData.MediumLimitBetMap
-	}
-
-	return g.GameData.SmallLimitBetMap
-}
-
-func (g *CockStrategy) GetCurState() com.GameState {
-	return g.stateMng.CurrState
-}
-
-func (g *CockStrategy) GetPayout(betKind com.BetKind) com.Amount {
-	return g.GameData.PayoutMap[betKind]
-}
-
-func (g *CockStrategy) onTick() {
-	switch g.stateMng.CurrState {
-	case com.GAME_STATE_BETTING:
-		remainBettingTime := uint16(g.stateMng.StateDurs[1] - g.stateMng.StateTime)
-		for _, room := range g.roomList {
-			res := (&com.TickResponse{}).Init(room)
-			res.Time = remainBettingTime
-			res.RoomTotalBet = float64(room.GetRoomTotalBet())
-			room.BroadcastMessage(res)
-		}
-	}
-	g.tickCount++
-	if g.tickCount > 0 {
-		g.tickCount = 0
-		for _, room := range g.roomList {
-			room.NotifyRoomStats()
-		}
 	}
 }
 
@@ -258,17 +140,17 @@ func (g *CockStrategy) onEnterState(state com.GameState) {
 	fmt.Println("onEnterState ", state)
 	switch state {
 	case com.GAME_STATE_STARTING:
-		g.onEnterStarting()
+		g.OnEnterStarting()
 	case com.GAME_STATE_BETTING:
-		g.onEnterBetting()
+		g.OnEnterBetting()
 	case com.GAME_STATE_CLOSE_BETTING:
-		g.onEnterCloseBetting()
+		g.OnEnterCloseBetting()
 	case com.GAME_STATE_GEN_RESULT:
-		g.onEnterGenResult()
+		g.OnEnterGenResult()
 	case com.GAME_STATE_RESULT:
-		g.onEnterResult()
+		g.OnEnterResult()
 	case com.GAME_STATE_PAYOUT:
-		g.onEnterPayout()
+		g.OnEnterPayout()
 	}
 	g.SaveGameState()
 }
@@ -276,37 +158,56 @@ func (g *CockStrategy) onEnterState(state com.GameState) {
 func (g *CockStrategy) onExitState(state com.GameState) {
 }
 
-func (g *CockStrategy) onEnterStarting() {
-	fmt.Println("CockStrategy entering STARTING state")
-	g.roundId++
-	g.pathInd++
+func (g *CockStrategy) GetBetKind(betType com.BetType) com.BetKind {
+	return g.BetKindMap[string(betType)]
+}
 
-	if g.pathInd > len(g.pathIds)-1 {
-		g.pathInd = 0
-		g.suffleArr()
+func (g *CockStrategy) GetAllBetLimits() []map[com.Currency]map[com.BetKind]*com.BetLimit {
+	limits := []map[com.Currency]map[com.BetKind]*com.BetLimit{g.SmallLimitBetMap, g.MediumLimitBetMap}
+	return limits
+}
+
+func (g *CockStrategy) GetBetLimit(level com.LimitLevel) map[com.Currency]map[com.BetKind]*com.BetLimit {
+	switch level {
+	case com.LIMIT_LEVEL_SMALL:
+		return g.SmallLimitBetMap
+	case com.LIMIT_LEVEL_MEDIUM:
+		return g.MediumLimitBetMap
 	}
 
-	g.txh = ""
-	g.w = ""
-	g.tickTime = 0
-	g.resultNum = -1
-	if g.roundId > com.RoundId(com.MAX_ROUND) {
-		g.roundId = 1
+	return g.SmallLimitBetMap
+}
+
+func (g *CockStrategy) GetPayout(betKind com.BetKind) com.Amount {
+	return g.PayoutMap[betKind]
+}
+
+func (g *CockStrategy) OnEnterStarting() {
+	fmt.Println("CockStrategy entering STARTING state")
+	g.RoundId++
+	// CockStrategy doesn't use PathIds/PathInd - this is Roulette-specific
+
+	g.Txh = ""
+	g.W = ""
+	g.TickTime = 0
+	g.ResultNum = -1
+	if g.RoundId > com.RoundId(com.MAX_ROUND) {
+		g.RoundId = 1
 	}
 	// create a new game state and delete the old one
-	tx, err := g.server.DB.Begin()
+	tx, err := g.Server.DB.Begin()
 	if err != nil {
 		com.VUtils.PrintError(err)
-		g.server.Maintenance()
+		g.Server.Maintenance()
 		return
 	}
-	_, err2 := tx.Exec("DELETE FROM gamestate WHERE gameid=?", g.gameId)
+	_, err2 := tx.Exec("DELETE FROM gamestate WHERE gameid=?", g.GameId)
 	if err2 != nil {
 		com.VUtils.PrintError(err2)
 		return
 	}
 
-	g.gameInitData = GameInitData{
+	g.gameInitData = &GameInitData{
 		Cock_1: &CockData{
 			Name:     "Thunder",
 			ID:       COCK_001,
@@ -325,7 +226,7 @@ func (g *CockStrategy) onEnterStarting() {
 		com.VUtils.PrintError(err)
 		return
 	}
-	response, err3 := tx.Exec("INSERT INTO gamestate(gameid, roundid, state, statetime, result, data) VALUES(?,?,?,?,?,?)", g.gameId, g.roundId, com.GAME_STATE_STARTING, 0, "", stateData)
+	response, err3 := tx.Exec("INSERT INTO gamestate(gameid, roundid, state, statetime, result, data) VALUES(?,?,?,?,?,?)", g.GameId, g.RoundId, com.GAME_STATE_STARTING, 0, "", stateData)
 	if err3 != nil {
 		tx.Rollback()
 		com.VUtils.PrintError(err3)
@@ -342,125 +243,105 @@ func (g *CockStrategy) onEnterStarting() {
 	err4 := tx.Commit()
 	if err4 != nil {
 		com.VUtils.PrintError(err4)
-		g.server.Maintenance()
+		g.Server.Maintenance()
 		return
 	}
 	// assign new game number ---
-	oldGameNumber := g.gameNumber
+	oldGameNumber := g.GameNumber
 	if oldGameNumber > 0 {
-		gameConf := g.server.GetGameConf(g.gameId)
+		gameConf := g.Server.GetGameConf(g.GameId)
 		for _, operatorId := range gameConf.OperatorIds {
 			// remove old bettings from wallet operator
 			param := com.VUtils.WalletLocalMessageUint64(operatorId, com.WCMD_CLEAR_BETTING, uint64(oldGameNumber))
-			g.server.WalletConn.Send(param, func(vs *com.VSocket, requestId uint64, resData []byte) {
+			g.Server.WalletConn.Send(param, func(vs *com.VSocket, requestId uint64, resData []byte) {
 				res := com.BaseGameResponse{}
 				err := json.Unmarshal(resData, &res)
 				if err != nil {
 					com.VUtils.PrintError(err)
-					g.server.Maintenance()
+					g.Server.Maintenance()
 					return
 				}
 				//fmt.Println("NEW GAME cleared betting id count ", res.IntVal, " gameNumber ", oldGameNumber)
 			}, nil)
 		}
 	}
-	g.gameNumber = com.GameNumber(gameNumber)
-	//fmt.Println("NEW GAME == gameId ", g.gameId, " gameNumber ", g.gameNumber)
+	g.GameNumber = com.GameNumber(gameNumber)
+	//fmt.Println("NEW GAME == gameId ", g.GameId, " gameNumber ", g.GameNumber)
 	// -------
 
-	for _, room := range g.roomList {
+	for _, room := range g.RoomList {
 		room.ResetBets()
 		res := (&com.BaseGameResponse{}).Init(room, com.CMD_START_GAME)
 		room.BroadcastMessage(res)
 	}
 }
 
-func (g *CockStrategy) onEnterBetting() {
-	fmt.Println("CockStrategy entering BETTING state")
-	for _, room := range g.roomList {
-		res := (&com.BaseGameResponse{}).Init(room, com.CMD_START_BET_SUCCEED)
-		room.BroadcastMessage(res)
-	}
+func (g *CockStrategy) OnEnterBetting() {
+	g.BaseGame.OnEnterBetting()
 }
 
-func (g *CockStrategy) onEnterCloseBetting() {
-	fmt.Println("CockStrategy entering CLOSE_BETTING state")
-	for _, room := range g.roomList {
-		res := (&com.BaseGameResponse{}).Init(room, com.CMD_STOP_BET_SUCCEED)
-		room.BroadcastMessage(res)
-	}
+func (g *CockStrategy) OnEnterCloseBetting() {
+	g.BaseGame.OnEnterCloseBetting()
 }
 
-func (g *CockStrategy) onEnterGenResult() {
-	fmt.Println("CockStrategy entering GEN_RESULT state")
-	for _, room := range g.roomList {
+func (g *CockStrategy) OnEnterGenResult() {
+	fmt.Printf("%s entering GEN_RESULT state\n", g.Name)
+	for _, room := range g.RoomList {
 		room.NotifyEndBetting()
 	}
 	g.genResult()
 }
 
-func (g *CockStrategy) onEnterResult() {
+func (g *CockStrategy) OnEnterResult() {
 	fmt.Println("CockStrategy entering RESULT state")
-	if g.resultNum < 0 {
-		msg := fmt.Sprintf("game %s has no result when payout", g.gameId)
+	if g.ResultNum < 0 {
+		msg := fmt.Sprintf("game %s has no result when payout", g.GameId)
 		com.VUtils.PrintError(errors.New(msg))
-		g.server.Maintenance()
+		g.Server.Maintenance()
 		return
 	}
 	// calculate payout & save DB but not send payout to player, payout should send when state payout start
-	for _, room := range g.roomList {
-		result := strconv.Itoa(g.resultNum) + "_" + strconv.Itoa(g.pathIds[g.pathInd])
-		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, result, g.txh, g.w)
+	for _, room := range g.RoomList {
+		result := strconv.Itoa(g.ResultNum)
+		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, result, g.Txh, g.W)
 		room.BroadcastMessage(res)
 	}
 	// run it on other thread
 	go g.payout()
 }
 
-func (g *CockStrategy) onEnterPayout() {
-	fmt.Println("CockStrategy entering PAYOUT state")
-	// broadcast payout to users ---
-	for _, room := range g.roomList {
-		room.NotifyReward()
-	}
-}
-
-func (g *CockStrategy) GetRemainStateTime() float64 {
-	return g.stateMng.StateDurs[g.stateMng.CurrState] - g.stateMng.StateTime
-}
-
-func (g *CockStrategy) GetTotalBetTime() float64 {
-	return g.stateMng.StateDurs[com.GAME_STATE_BETTING]
+func (g *CockStrategy) OnEnterPayout() {
+	g.BaseGame.OnEnterPayout()
 }
 
 func (g *CockStrategy) payout() {
-	if g.resultNum < 0 {
-		msg := fmt.Sprintf("Game %s has no result when payout", g.gameId)
+	if g.ResultNum < 0 {
+		msg := fmt.Sprintf("Game %s has no result when payout", g.GameId)
 		com.VUtils.PrintError(errors.New(msg))
-		g.server.Maintenance()
+		g.Server.Maintenance()
 		return
 	}
 
-	if g.gameNumber == 0 {
-		msg := fmt.Sprintf("Game %s has no gameNumber when payout", g.gameId)
+	if g.GameNumber == 0 {
+		msg := fmt.Sprintf("Game %s has no gameNumber when payout", g.GameId)
 		com.VUtils.PrintError(errors.New(msg))
-		g.server.Maintenance()
+		g.Server.Maintenance()
 		return
 	}
 	success := true
-	for _, room := range g.roomList {
+	for _, room := range g.RoomList {
 		if !g.payoutRoom(room) {
 			success = false
 		}
 	}
 
 	if !success {
-		msg := fmt.Sprintf("payout not success for game %s", g.gameId)
+		msg := fmt.Sprintf("payout not success for game %s", g.GameId)
 		com.VUtils.PrintError(errors.New(msg))
-		g.server.Maintenance()
+		g.Server.Maintenance()
 		return
 	}
-	//fmt.Println("payout success for gamenumber", g.gameNumber)
+	//fmt.Println("payout success for gamenumber", g.GameNumber)
 }
 
 func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
@@ -477,10 +358,10 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 		betDetail := ""
 		for _, betPlace := range betInfo.ConfirmedBetState {
 			betPay := com.Amount(0)
-			isWin, has := g.GameData.betResultMap[string(betPlace.Type)][g.resultNum]
+			isWin, has := g.GameData.betResultMap[string(betPlace.Type)][g.ResultNum]
 			if has && isWin {
-				betKind := g.GameData.BetKindMap[string(betPlace.Type)]
-				betPay = g.GameData.PayoutMap[betKind] * betPlace.Amount
+				betKind := g.BetKindMap[string(betPlace.Type)]
+				betPay = g.PayoutMap[betKind] * betPlace.Amount
 				totalPay += betPay
 			}
 			if betDetail != "" {
@@ -517,37 +398,9 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 	return success
 }
 
-func (g *CockStrategy) GetGameResult() string {
-	if g.resultNum < 0 {
-		return ""
-	}
-	return fmt.Sprintf("%d", g.resultNum)
-}
-
-func (g *CockStrategy) GetResultString() string {
-	return fmt.Sprintf("%d_%d", g.resultNum, g.pathIds[g.pathInd])
-}
-
-func (g *CockStrategy) GetTxh() string {
-	return g.txh
-}
-
-func (g *CockStrategy) GetW() string {
-	return g.w
-}
-
-func (g *CockStrategy) InitRoomForGame(room *com.GameRoom) {
-	g.roomList = append(g.roomList, room)
-	// init limit map
-}
-
-func (g *CockStrategy) LoadTrends(gameId com.GameId, page uint32) []*com.TrendItem {
-	return g.trends
-}
-
 func (g *CockStrategy) OnMessage(connId com.ConnectionId, msg string) {
-	//fmt.Printf("game: %s OnMessage: %s\n", g.name, msg)
-	connInfo, ok := g.server.GetConnectionInfo(connId)
+	//fmt.Printf("game: %s OnMessage: %s\n", g.Name, msg)
+	connInfo, ok := g.Server.GetConnectionInfo(connId)
 	if !ok {
 		return
 	}
@@ -559,12 +412,12 @@ func (g *CockStrategy) OnMessage(connId com.ConnectionId, msg string) {
 
 	cmd := data["CMD"].(string)
 	roomId := data["RoomId"].(string)
-	room := g.server.RoomMng.GetRoom(connInfo.OperatorId, com.RoomId(roomId))
+	room := g.Server.RoomMng.GetRoom(connInfo.OperatorId, com.RoomId(roomId))
 	if room == nil {
 		fmt.Println("OnMessage roomId == nil ", cmd)
 		return
 	}
-	currState := g.stateMng.CurrState
+	currState := g.StateMng.CurrState
 	switch cmd {
 	case com.CMD_SEND_BET_UPDATE:
 		if currState == com.GAME_STATE_BETTING || currState == com.GAME_STATE_CLOSE_BETTING {
@@ -582,11 +435,26 @@ func (g *CockStrategy) OnMessage(connId com.ConnectionId, msg string) {
 		} else {
 			res := (&com.BetFailResponse{}).Init(room)
 			res.FailCode = com.RES_FAIL_BET_REJECT
-			g.server.SendPrivateMessage(connId, res)
+			g.Server.SendPrivateMessage(connId, res)
 		}
 	}
 
 	room.OnMessage(cmd, connInfo, msg)
+}
+
+func (g *CockStrategy) GetResultNum() int {
+	return g.ResultNum
+}
+
+func (g *CockStrategy) GetResultString() string {
+	return fmt.Sprintf("%d", g.ResultNum)
+}
+
+func (game *CockStrategy) GetGameResult() string {
+	if game.ResultNum < 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d", game.ResultNum)
 }
 
 func (g *CockStrategy) genResult() {

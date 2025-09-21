@@ -5,7 +5,7 @@
 		{
 			"gameId": "Roulette_01",
 			"frameTime": 1.0,
-			"active": false,
+			"active": true,
 			"operatorIds": [
 				"001"
 			],
@@ -23,7 +23,7 @@
 		{
 			"gameId": "GameA_01",
 			"frameTime": 1.0,
-			"active": false,
+			"active": true,
 			"operatorIds": [
 				"001"
 			],
