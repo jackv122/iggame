@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"net/http"
-	"os"
 	"strconv"
 	com "vgame/_common"
 )
@@ -32,11 +30,9 @@ type Roulette struct {
 	GameData   *RouletteData
 	gameNumber com.GameNumber // need to gen on state STARTING
 
-	SmallLimitBetMap  map[com.Currency]map[com.BetKind]*com.BetLimit
-	MediumLimitBetMap map[com.Currency]map[com.BetKind]*com.BetLimit
-	pathIds           []int
-	pathInd           int
-	trends            []*com.TrendItem
+	pathIds []int
+	pathInd int
+	trends  []*com.TrendItem
 
 	tickCount int
 }
@@ -67,9 +63,6 @@ func (g *Roulette) Init(server *com.GameServer) *Roulette {
 
 	// payout
 	g.GameData = (&RouletteData{}).init()
-
-	// Load limit maps from JSON configuration
-	g.loadLimitMapsFromJSON()
 	return g
 }
 
@@ -82,122 +75,6 @@ func (g *Roulette) suffleArr() {
 		g.pathIds[i] = g.pathIds[ind]
 		g.pathIds[ind] = t
 	}
-}
-
-func (g *Roulette) loadLimitMapsFromJSON() {
-	configPath := "config/roulette_config.json"
-
-	// Check if config file exists, if not use default values
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		fmt.Printf("Roulette config file %s not found, using default values\n", configPath)
-		g.loadDefaultLimitMaps()
-		return
-	}
-
-	// Read and parse JSON config
-	jsonData, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		fmt.Printf("Error reading roulette config file: %v, using default values\n", err)
-		g.loadDefaultLimitMaps()
-		return
-	}
-
-	var configData map[string]interface{}
-	err = json.Unmarshal(jsonData, &configData)
-	if err != nil {
-		fmt.Printf("Error parsing roulette config file: %v, using default values\n", err)
-		g.loadDefaultLimitMaps()
-		return
-	}
-
-	// Initialize maps
-	g.SmallLimitBetMap = map[com.Currency]map[com.BetKind]*com.BetLimit{}
-	g.MediumLimitBetMap = map[com.Currency]map[com.BetKind]*com.BetLimit{}
-
-	// Load small limit bet map
-	if smallLimitData, ok := configData["smallLimitBetMap"].(map[string]interface{}); ok {
-		for currency, currencyData := range smallLimitData {
-			if currencyMap, ok := currencyData.(map[string]interface{}); ok {
-				betMap := map[com.BetKind]*com.BetLimit{}
-				for betKindStr, limitData := range currencyMap {
-					if betKindInt, err := strconv.Atoi(betKindStr); err == nil {
-						if limitMap, ok := limitData.(map[string]interface{}); ok {
-							if minVal, ok := limitMap["min"].(float64); ok {
-								if maxVal, ok := limitMap["max"].(float64); ok {
-									betMap[com.BetKind(betKindInt)] = &com.BetLimit{
-										Min: com.Amount(minVal),
-										Max: com.Amount(maxVal),
-									}
-								}
-							}
-						}
-					}
-				}
-				g.SmallLimitBetMap[com.Currency(currency)] = betMap
-			}
-		}
-	}
-
-	// Load medium limit bet map
-	if mediumLimitData, ok := configData["mediumLimitBetMap"].(map[string]interface{}); ok {
-		for currency, currencyData := range mediumLimitData {
-			if currencyMap, ok := currencyData.(map[string]interface{}); ok {
-				betMap := map[com.BetKind]*com.BetLimit{}
-				for betKindStr, limitData := range currencyMap {
-					if betKindInt, err := strconv.Atoi(betKindStr); err == nil {
-						if limitMap, ok := limitData.(map[string]interface{}); ok {
-							if minVal, ok := limitMap["min"].(float64); ok {
-								if maxVal, ok := limitMap["max"].(float64); ok {
-									betMap[com.BetKind(betKindInt)] = &com.BetLimit{
-										Min: com.Amount(minVal),
-										Max: com.Amount(maxVal),
-									}
-								}
-							}
-						}
-					}
-				}
-				g.MediumLimitBetMap[com.Currency(currency)] = betMap
-			}
-		}
-	}
-
-	fmt.Println("Roulette configuration loaded from JSON file")
-}
-
-func (g *Roulette) loadDefaultLimitMaps() {
-	g.SmallLimitBetMap = map[com.Currency]map[com.BetKind]*com.BetLimit{}
-	usdc := map[com.BetKind]*com.BetLimit{}
-
-	usdc[BET_Straight] = &com.BetLimit{Min: 0.1, Max: 3}
-	usdc[BET_Split] = &com.BetLimit{Min: 0.1, Max: 6}
-	usdc[BET_Street] = &com.BetLimit{Min: 0.1, Max: 9}
-	usdc[BET_Corner] = &com.BetLimit{Min: 0.1, Max: 12}
-	usdc[BET_Line] = &com.BetLimit{Min: 0.1, Max: 18}
-	usdc[BET_Trio] = &com.BetLimit{Min: 0.1, Max: 9}
-	usdc[BET_Basket] = &com.BetLimit{Min: 0.1, Max: 16}
-	usdc[BET_Odd_Even] = &com.BetLimit{Min: 0.1, Max: 54}
-	usdc[BET_Red_Black] = &com.BetLimit{Min: 0.1, Max: 54}
-	usdc[BET_High_Low] = &com.BetLimit{Min: 0.1, Max: 54}
-	usdc[BET_Columns] = &com.BetLimit{Min: 0.1, Max: 36}
-	usdc[BET_Dozens] = &com.BetLimit{Min: 0.1, Max: 36}
-	g.SmallLimitBetMap[com.Currency("USDC")] = usdc
-
-	g.MediumLimitBetMap = map[com.Currency]map[com.BetKind]*com.BetLimit{}
-	usdc = map[com.BetKind]*com.BetLimit{}
-	usdc[BET_Straight] = &com.BetLimit{Min: 1, Max: 30}
-	usdc[BET_Split] = &com.BetLimit{Min: 1, Max: 60}
-	usdc[BET_Street] = &com.BetLimit{Min: 1, Max: 90}
-	usdc[BET_Corner] = &com.BetLimit{Min: 1, Max: 120}
-	usdc[BET_Line] = &com.BetLimit{Min: 1, Max: 180}
-	usdc[BET_Trio] = &com.BetLimit{Min: 1, Max: 90}
-	usdc[BET_Basket] = &com.BetLimit{Min: 1, Max: 160}
-	usdc[BET_Odd_Even] = &com.BetLimit{Min: 1, Max: 540}
-	usdc[BET_Red_Black] = &com.BetLimit{Min: 1, Max: 540}
-	usdc[BET_High_Low] = &com.BetLimit{Min: 1, Max: 540}
-	usdc[BET_Columns] = &com.BetLimit{Min: 1, Max: 360}
-	usdc[BET_Dozens] = &com.BetLimit{Min: 1, Max: 360}
-	g.MediumLimitBetMap[com.Currency("USDC")] = usdc
 }
 
 func (g *Roulette) Start() {
@@ -704,19 +581,19 @@ func (game *Roulette) GetBetKind(betType com.BetType) com.BetKind {
 }
 
 func (game *Roulette) GetAllBetLimits() []map[com.Currency]map[com.BetKind]*com.BetLimit {
-	limits := []map[com.Currency]map[com.BetKind]*com.BetLimit{game.SmallLimitBetMap, game.MediumLimitBetMap}
+	limits := []map[com.Currency]map[com.BetKind]*com.BetLimit{game.GameData.SmallLimitBetMap, game.GameData.MediumLimitBetMap}
 	return limits
 }
 
 func (game *Roulette) GetBetLimit(level com.LimitLevel) map[com.Currency]map[com.BetKind]*com.BetLimit {
 	switch level {
 	case com.LIMIT_LEVEL_SMALL:
-		return game.SmallLimitBetMap
+		return game.GameData.SmallLimitBetMap
 	case com.LIMIT_LEVEL_MEDIUM:
-		return game.MediumLimitBetMap
+		return game.GameData.MediumLimitBetMap
 	}
 
-	return game.SmallLimitBetMap
+	return game.GameData.SmallLimitBetMap
 }
 
 func (game *Roulette) GetCurState() com.GameState {

@@ -1,6 +1,10 @@
 package rou
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"strconv"
 	com "vgame/_common"
 )
@@ -21,9 +25,11 @@ const (
 )
 
 type RouletteData struct {
-	betResultMap map[string]map[int]bool
-	BetKindMap   map[string]com.BetKind
-	PayoutMap    map[com.BetKind]com.Amount
+	betResultMap      map[string]map[int]bool
+	BetKindMap        map[string]com.BetKind
+	PayoutMap         map[com.BetKind]com.Amount
+	SmallLimitBetMap  map[com.Currency]map[com.BetKind]*com.BetLimit
+	MediumLimitBetMap map[com.Currency]map[com.BetKind]*com.BetLimit
 }
 
 func (d *RouletteData) init() *RouletteData {
@@ -41,6 +47,9 @@ func (d *RouletteData) init() *RouletteData {
 	d.PayoutMap[BET_High_Low] = 1 + 1
 	d.PayoutMap[BET_Columns] = 2 + 1
 	d.PayoutMap[BET_Dozens] = 2 + 1
+
+	// Load limit maps from JSON configuration
+	d.loadLimitMapsFromJSON()
 	return d
 }
 
@@ -217,4 +226,120 @@ func (d *RouletteData) initBetResultMap() {
 		hlMap["E"+strconv.Itoa(i)] = m
 		d.BetKindMap["E"+strconv.Itoa(i)] = BET_Columns
 	}
+}
+
+func (d *RouletteData) loadLimitMapsFromJSON() {
+	configPath := "config/roulette_config.json"
+
+	// Check if config file exists, if not use default values
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		fmt.Printf("Roulette config file %s not found, using default values\n", configPath)
+		d.loadDefaultLimitMaps()
+		return
+	}
+
+	// Read and parse JSON config
+	jsonData, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		fmt.Printf("Error reading roulette config file: %v, using default values\n", err)
+		d.loadDefaultLimitMaps()
+		return
+	}
+
+	var configData map[string]interface{}
+	err = json.Unmarshal(jsonData, &configData)
+	if err != nil {
+		fmt.Printf("Error parsing roulette config file: %v, using default values\n", err)
+		d.loadDefaultLimitMaps()
+		return
+	}
+
+	// Initialize maps
+	d.SmallLimitBetMap = map[com.Currency]map[com.BetKind]*com.BetLimit{}
+	d.MediumLimitBetMap = map[com.Currency]map[com.BetKind]*com.BetLimit{}
+
+	// Load small limit bet map
+	if smallLimitData, ok := configData["smallLimitBetMap"].(map[string]interface{}); ok {
+		for currency, currencyData := range smallLimitData {
+			if currencyMap, ok := currencyData.(map[string]interface{}); ok {
+				betMap := map[com.BetKind]*com.BetLimit{}
+				for betKindStr, limitData := range currencyMap {
+					if betKindInt, err := strconv.Atoi(betKindStr); err == nil {
+						if limitMap, ok := limitData.(map[string]interface{}); ok {
+							if minVal, ok := limitMap["min"].(float64); ok {
+								if maxVal, ok := limitMap["max"].(float64); ok {
+									betMap[com.BetKind(betKindInt)] = &com.BetLimit{
+										Min: com.Amount(minVal),
+										Max: com.Amount(maxVal),
+									}
+								}
+							}
+						}
+					}
+				}
+				d.SmallLimitBetMap[com.Currency(currency)] = betMap
+			}
+		}
+	}
+
+	// Load medium limit bet map
+	if mediumLimitData, ok := configData["mediumLimitBetMap"].(map[string]interface{}); ok {
+		for currency, currencyData := range mediumLimitData {
+			if currencyMap, ok := currencyData.(map[string]interface{}); ok {
+				betMap := map[com.BetKind]*com.BetLimit{}
+				for betKindStr, limitData := range currencyMap {
+					if betKindInt, err := strconv.Atoi(betKindStr); err == nil {
+						if limitMap, ok := limitData.(map[string]interface{}); ok {
+							if minVal, ok := limitMap["min"].(float64); ok {
+								if maxVal, ok := limitMap["max"].(float64); ok {
+									betMap[com.BetKind(betKindInt)] = &com.BetLimit{
+										Min: com.Amount(minVal),
+										Max: com.Amount(maxVal),
+									}
+								}
+							}
+						}
+					}
+				}
+				d.MediumLimitBetMap[com.Currency(currency)] = betMap
+			}
+		}
+	}
+
+	fmt.Println("Roulette configuration loaded from JSON file")
+}
+
+func (d *RouletteData) loadDefaultLimitMaps() {
+	d.SmallLimitBetMap = map[com.Currency]map[com.BetKind]*com.BetLimit{}
+	usdc := map[com.BetKind]*com.BetLimit{}
+
+	usdc[BET_Straight] = &com.BetLimit{Min: 0.1, Max: 3}
+	usdc[BET_Split] = &com.BetLimit{Min: 0.1, Max: 6}
+	usdc[BET_Street] = &com.BetLimit{Min: 0.1, Max: 9}
+	usdc[BET_Corner] = &com.BetLimit{Min: 0.1, Max: 12}
+	usdc[BET_Line] = &com.BetLimit{Min: 0.1, Max: 18}
+	usdc[BET_Trio] = &com.BetLimit{Min: 0.1, Max: 9}
+	usdc[BET_Basket] = &com.BetLimit{Min: 0.1, Max: 16}
+	usdc[BET_Odd_Even] = &com.BetLimit{Min: 0.1, Max: 54}
+	usdc[BET_Red_Black] = &com.BetLimit{Min: 0.1, Max: 54}
+	usdc[BET_High_Low] = &com.BetLimit{Min: 0.1, Max: 54}
+	usdc[BET_Columns] = &com.BetLimit{Min: 0.1, Max: 36}
+	usdc[BET_Dozens] = &com.BetLimit{Min: 0.1, Max: 36}
+	d.SmallLimitBetMap[com.Currency("USDC")] = usdc
+
+	d.MediumLimitBetMap = map[com.Currency]map[com.BetKind]*com.BetLimit{}
+	usdc = map[com.BetKind]*com.BetLimit{}
+	usdc[BET_Straight] = &com.BetLimit{Min: 1, Max: 30}
+	usdc[BET_Split] = &com.BetLimit{Min: 1, Max: 60}
+	usdc[BET_Street] = &com.BetLimit{Min: 1, Max: 90}
+	usdc[BET_Corner] = &com.BetLimit{Min: 1, Max: 120}
+	usdc[BET_Line] = &com.BetLimit{Min: 1, Max: 180}
+	usdc[BET_Trio] = &com.BetLimit{Min: 1, Max: 90}
+	usdc[BET_Basket] = &com.BetLimit{Min: 1, Max: 160}
+	usdc[BET_Odd_Even] = &com.BetLimit{Min: 1, Max: 540}
+	usdc[BET_Red_Black] = &com.BetLimit{Min: 1, Max: 540}
+	usdc[BET_High_Low] = &com.BetLimit{Min: 1, Max: 540}
+	usdc[BET_Columns] = &com.BetLimit{Min: 1, Max: 360}
+	usdc[BET_Dozens] = &com.BetLimit{Min: 1, Max: 360}
+	d.MediumLimitBetMap[com.Currency("USDC")] = usdc
 }
