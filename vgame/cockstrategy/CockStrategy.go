@@ -9,6 +9,18 @@ import (
 	com "vgame/_common"
 )
 
+type CockData struct {
+	Name     string
+	ID       CockID
+	Strength int
+	Agility  int
+}
+
+type GameInitData struct {
+	Cock_1 *CockData
+	Cock_2 *CockData
+}
+
 type CockStrategy struct {
 	server     *com.GameServer
 	gameId     com.GameId
@@ -32,6 +44,8 @@ type CockStrategy struct {
 	trends  []*com.TrendItem
 
 	tickCount int
+
+	gameInitData GameInitData
 }
 
 // work as constructor
@@ -94,7 +108,7 @@ func (g *CockStrategy) onStartComplete() {
 }
 
 func (g *CockStrategy) LoadGameState() bool {
-	row := g.server.DB.QueryRow("SELECT gamenumber, roundid, state, statetime, result, tx, w, h FROM gamestate WHERE gameid=?", g.gameId)
+	row := g.server.DB.QueryRow("SELECT gamenumber, roundid, state, statetime, result, data, tx, w, h FROM gamestate WHERE gameid=?", g.gameId)
 	var gameNumber int
 	var roundId int
 	var state int
@@ -103,7 +117,8 @@ func (g *CockStrategy) LoadGameState() bool {
 	var tx string
 	var w string
 	var h string
-	err := row.Scan(&gameNumber, &roundId, &state, &stateTime, &result, &tx, &w, &h)
+	var stateData string
+	err := row.Scan(&gameNumber, &roundId, &state, &stateTime, &result, &stateData, &tx, &w, &h)
 	if err != nil {
 		return false
 	}
@@ -114,15 +129,26 @@ func (g *CockStrategy) LoadGameState() bool {
 	g.resultNum = result
 	g.txh = tx
 	g.w = w
+	err2 := json.Unmarshal([]byte(stateData), &g.gameInitData)
+	if err2 != nil {
+		com.VUtils.PrintError(err)
+		g.server.Maintenance()
+		return false
+	}
 	return true
 }
 
 func (g *CockStrategy) SaveGameState() {
 	resultStr := strconv.Itoa(g.resultNum)
+	stateDataStr, err := json.Marshal(g.gameInitData)
+	if err != nil {
+		com.VUtils.PrintError(err)
+		return
+	}
 	str := fmt.Sprintf("%d_%s_%d_%d_%s_%s_%s", g.gameNumber, g.gameId, g.roundId, g.stateMng.CurrState, resultStr, g.txh, g.w)
 	hash := com.VUtils.HashString(str)
-	_, err := g.server.DB.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, tx=?, w=?, h=? WHERE gamenumber=?", g.stateMng.CurrState, g.stateMng.StateTime, resultStr, g.txh, g.w, hash, g.gameNumber)
-	if err != nil {
+	_, err2 := g.server.DB.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, data=?, tx=?, w=?, h=? WHERE gamenumber=?", g.stateMng.CurrState, g.stateMng.StateTime, resultStr, stateDataStr, g.txh, g.w, hash, g.gameNumber)
+	if err2 != nil {
 		com.VUtils.PrintError(err)
 		g.server.Maintenance()
 		return
@@ -279,7 +305,27 @@ func (g *CockStrategy) onEnterStarting() {
 		com.VUtils.PrintError(err2)
 		return
 	}
-	response, err3 := tx.Exec("INSERT INTO gamestate(gameid, roundid, state, statetime, result) VALUES(?,?,?,?,?)", g.gameId, g.roundId, com.GAME_STATE_STARTING, 0, "")
+
+	g.gameInitData = GameInitData{
+		Cock_1: &CockData{
+			Name:     "Thunder",
+			ID:       COCK_001,
+			Strength: 85,
+			Agility:  70,
+		},
+		Cock_2: &CockData{
+			Name:     "Lightning",
+			ID:       COCK_002,
+			Strength: 75,
+			Agility:  90,
+		},
+	}
+	stateData, err := json.Marshal(&g.gameInitData)
+	if err != nil {
+		com.VUtils.PrintError(err)
+		return
+	}
+	response, err3 := tx.Exec("INSERT INTO gamestate(gameid, roundid, state, statetime, result, data) VALUES(?,?,?,?,?,?)", g.gameId, g.roundId, com.GAME_STATE_STARTING, 0, "", stateData)
 	if err3 != nil {
 		tx.Rollback()
 		com.VUtils.PrintError(err3)
