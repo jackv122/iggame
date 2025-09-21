@@ -1,0 +1,130 @@
+{
+  "smallLimitBetMap": {
+    "USDC": {
+      "0": {
+        "betKind": "BET_Straight",
+        "min": 0.1,
+        "max": 3
+      },
+      "1": {
+        "betKind": "BET_Split",
+        "min": 0.1,
+        "max": 6
+      },
+      "2": {
+        "betKind": "BET_Street",
+        "min": 0.1,
+        "max": 9
+      },
+      "3": {
+        "betKind": "BET_Corner",
+        "min": 0.1,
+        "max": 12
+      },
+      "4": {
+        "betKind": "BET_Line",
+        "min": 0.1,
+        "max": 18
+      },
+      "5": {
+        "betKind": "BET_Trio",
+        "min": 0.1,
+        "max": 9
+      },
+      "6": {
+        "betKind": "BET_Basket",
+        "min": 0.1,
+        "max": 16
+      },
+      "7": {
+        "betKind": "BET_Odd_Even",
+        "min": 0.1,
+        "max": 54
+      },
+      "8": {
+        "betKind": "BET_Red_Black",
+        "min": 0.1,
+        "max": 54
+      },
+      "9": {
+        "betKind": "BET_High_Low",
+        "min": 0.1,
+        "max": 54
+      },
+      "10": {
+        "betKind": "BET_Columns",
+        "min": 0.1,
+        "max": 36
+      },
+      "11": {
+        "betKind": "BET_Dozens",
+        "min": 0.1,
+        "max": 36
+      }
+    }
+  },
+  "mediumLimitBetMap": {
+    "USDC": {
+      "0": {
+        "betKind": "BET_Straight",
+        "min": 1,
+        "max": 30
+      },
+      "1": {
+        "betKind": "BET_Split",
+        "min": 1,
+        "max": 60
+      },
+      "2": {
+        "betKind": "BET_Street",
+        "min": 1,
+        "max": 90
+      },
+      "3": {
+        "betKind": "BET_Corner",
+        "min": 1,
+        "max": 120
+      },
+      "4": {
+        "betKind": "BET_Line",
+        "min": 1,
+        "max": 180
+      },
+      "5": {
+        "betKind": "BET_Trio",
+        "min": 1,
+        "max": 90
+      },
+      "6": {
+        "betKind": "BET_Basket",
+        "min": 1,
+        "max": 160
+      },
+      "7": {
+        "betKind": "BET_Odd_Even",
+        "min": 1,
+        "max": 540
+      },
+      "8": {
+        "betKind": "BET_Red_Black",
+        "min": 1,
+        "max": 540
+      },
+      "9": {
+        "betKind": "BET_High_Low",
+        "min": 1,
+        "max": 540
+      },
+      "10": {
+        "betKind": "BET_Columns",
+        "min": 1,
+        "max": 360
+      },
+      "11": {
+        "betKind": "BET_Dozens",
+        "min": 1,
+        "max": 360
+      }
+    }
+  }
+}
