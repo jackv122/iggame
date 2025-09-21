@@ -32,8 +32,9 @@ type BlockChainTxResult struct {
 }
 
 const (
-	IDRoulette GameId = "Roulette_01"
-	IDGameA    GameId = "GameA_01"
+	IDRoulette     GameId = "Roulette_01"
+	IDCockStrategy GameId = "CockStrategy_01"
+	IDGameA        GameId = "GameA_01"
 
 	GAME_ENCRYPT      = 0
 	PROXY_ENCRYPT     = 1

@@ -1,0 +1,26 @@
+{
+    "cocks": {
+        "001": {
+            "name": "cock 01",
+            "strength": 70,
+            "agi": 45
+        },
+        "002": {
+            "name": "cock 02",
+            "strength": 70,
+            "agi": 45
+        }
+        ,
+        "003": {
+            "name": "cock 02",
+            "strength": 70,
+            "agi": 45
+        }
+        ,
+        "004": {
+            "name": "cock 02",
+            "strength": 70,
+            "agi": 45
+        }
+    }
+}

@@ -13,7 +13,8 @@ import (
 	"unsafe"
 	com "vgame/_common"
 	wal "vgame/_wallet"
-	rou "vgame/roulette"
+	cock "vgame/cockstrategy"
+	roul "vgame/roulette"
 )
 
 func test() {
@@ -233,8 +234,11 @@ func initGameFactory() {
 			// type assertion of Interface
 			gameServer.SetGamePointer(gameId, unsafe.Pointer(game.(*com.GameA)))
 		case com.IDRoulette:
-			game = (&rou.Roulette{}).Init(gameServer)
-			gameServer.SetGamePointer(gameId, unsafe.Pointer(game.(*rou.Roulette)))
+			game = (&roul.Roulette{}).Init(gameServer)
+			gameServer.SetGamePointer(gameId, unsafe.Pointer(game.(*roul.Roulette)))
+		case com.IDCockStrategy:
+			game = (&cock.CockStrategy{}).Init(gameServer)
+			gameServer.SetGamePointer(gameId, unsafe.Pointer(game.(*cock.CockStrategy)))
 		}
 		return game
 	}
@@ -243,9 +247,11 @@ func initGameFactory() {
 		var game com.GameInterface = nil
 		switch gameId {
 		case com.IDRoulette:
-			game = (*rou.Roulette)(gameServer.GetGamePointer(gameId))
+			game = (*roul.Roulette)(gameServer.GetGamePointer(gameId))
 		case com.IDGameA:
 			game = (*com.GameA)(gameServer.GetGamePointer(gameId))
+		case com.IDCockStrategy:
+			game = (*cock.CockStrategy)(gameServer.GetGamePointer(gameId))
 		}
 		return game
 	}

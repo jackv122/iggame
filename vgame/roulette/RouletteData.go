@@ -1,4 +1,4 @@
-package rou
+package roul
 
 import (
 	"encoding/json"
@@ -25,7 +25,8 @@ const (
 )
 
 type RouletteData struct {
-	betResultMap      map[string]map[int]bool
+	betResultMap map[string]map[int]bool
+	// map a betId to a bet kind
 	BetKindMap        map[string]com.BetKind
 	PayoutMap         map[com.BetKind]com.Amount
 	SmallLimitBetMap  map[com.Currency]map[com.BetKind]*com.BetLimit
@@ -33,7 +34,7 @@ type RouletteData struct {
 }
 
 func (d *RouletteData) init() *RouletteData {
-	d.initBetResultMap()
+	d.initBetKindMap()
 	d.PayoutMap = map[com.BetKind]com.Amount{}
 	d.PayoutMap[BET_Straight] = 35 + 1
 	d.PayoutMap[BET_Split] = 17 + 1
@@ -53,7 +54,7 @@ func (d *RouletteData) init() *RouletteData {
 	return d
 }
 
-func (d *RouletteData) initBetResultMap() {
+func (d *RouletteData) initBetKindMap() {
 	d.betResultMap = map[string]map[int]bool{}
 	d.BetKindMap = map[string]com.BetKind{}
 	hlMap := d.betResultMap
@@ -229,7 +230,7 @@ func (d *RouletteData) initBetResultMap() {
 }
 
 func (d *RouletteData) loadLimitMapsFromJSON() {
-	configPath := "config/roulette_config.json"
+	configPath := "config/roulette_limits.json"
 
 	// Check if config file exists, if not use default values
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
