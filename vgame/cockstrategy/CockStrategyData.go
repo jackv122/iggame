@@ -18,14 +18,9 @@ const (
 )
 
 type CockStrategyData struct {
-	betResultMap map[string]map[int]bool
 }
 
 func (d *CockStrategyData) init(g *CockStrategy) *CockStrategyData {
-	d.betResultMap = map[string]map[int]bool{}
-
-	// payout
-	// Initialize game data maps
 	g.PayoutMap[com.BetKind(BET_Straight)] = 35 + 1
 
 	// init BetKindMap

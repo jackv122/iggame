@@ -358,8 +358,8 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 		betDetail := ""
 		for _, betPlace := range betInfo.ConfirmedBetState {
 			betPay := com.Amount(0)
-			isWin, has := g.GameData.betResultMap[string(betPlace.Type)][g.ResultNum]
-			if has && isWin {
+			isWin := true
+			if isWin {
 				betKind := g.BetKindMap[string(betPlace.Type)]
 				betPay = g.PayoutMap[betKind] * betPlace.Amount
 				totalPay += betPay
