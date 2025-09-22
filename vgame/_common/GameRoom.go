@@ -159,7 +159,7 @@ func (room *GameRoom) JoinRoom(connId ConnectionId) bool {
 			betInfo.Currency = balanceInfo.Currency
 
 			res := (&ClientJoinRoomRes{}).Init(room, connInfo.UserId, betInfo.Balance)
-			room.Server.SendPrivateMessage(connId, res)
+			room.Server.SendPrivateMessage(room.RoomId, connId, res)
 		})
 		return true
 	}
@@ -266,7 +266,7 @@ func (room *GameRoom) NotifyEndBetting() {
 }
 
 func (room *GameRoom) sendMessage(connId ConnectionId, data any) {
-	room.Server.SendPrivateMessage(connId, data)
+	room.Server.SendPrivateMessage(room.RoomId, connId, data)
 }
 
 // send to all acive users
@@ -274,7 +274,7 @@ func (room *GameRoom) BroadcastMessage(data any) {
 	if len(room.connList) == 0 {
 		return
 	}
-	room.Server.SendPublicMessage(room.connList, data)
+	room.Server.SendPublicMessage(room.RoomId, room.connList, data)
 }
 
 // save the current betting to DB
@@ -336,19 +336,19 @@ func (room *GameRoom) OnMessage(cmd string, connInfo *ConnectionInfo, msg string
 	switch cmd {
 	case CMD_GET_ROOM_INFO:
 		res := (&ClientRoomInfoResponse{}).Init(room, connInfo.UserId)
-		room.Server.SendPrivateMessage(connInfo.ConnId, res)
+		room.Server.SendPrivateMessage(room.RoomId, connInfo.ConnId, res)
 	case CMD_GET_TRENDS:
 		game := GetGameInterface(room.GameId, room.Server)
 		trends := game.LoadTrends(room.GameId, 0)
 		if trends != nil {
 			res := (&ClientTrendResponse{}).Init(room, &trends)
-			room.Server.SendPrivateMessage(connInfo.ConnId, res)
+			room.Server.SendPrivateMessage(room.RoomId, connInfo.ConnId, res)
 		}
 
 	case CMD_LEAVE_ROOM:
 		res := (&ClientNumberGameResponse{}).Init(room, CMD_LEAVE_ROOM_SUCCESS)
 		room.LeaveRoom(connInfo.ConnId)
-		room.Server.SendPrivateMessage(connInfo.ConnId, res)
+		room.Server.SendPrivateMessage(room.RoomId, connInfo.ConnId, res)
 	}
 }
 

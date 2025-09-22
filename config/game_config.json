@@ -3,7 +3,7 @@
 	"workerNum": 4,
 	"games": [
 		{
-			"gameId": "Roulette_01",
+			"gameId": "roul01",
 			"frameTime": 1.0,
 			"active": false,
 			"operatorIds": [
@@ -11,17 +11,17 @@
 			],
 			"roomConfigs": [
 				{
-					"roomId": "Roulette_01_small",
+					"roomId": "roul01001",
 					"limitLevel": 0
 				},
 				{
-					"roomId": "Roulette_01_dedium",
+					"roomId": "roul01002",
 					"limitLevel": 1
 				}
 			]
 		},
 		{
-			"gameId": "GameA_01",
+			"gameId": "game01",
 			"frameTime": 1.0,
 			"active": false,
 			"operatorIds": [
@@ -29,17 +29,17 @@
 			],
 			"roomConfigs": [
 				{
-					"roomId": "GameA_01_small",
+					"roomId": "game01001",
 					"limitLevel": 0
 				},
 				{
-					"roomId": "GameA_01_medium",
+					"roomId": "game01002",
 					"limitLevel": 1
 				}
 			]
 		},
 		{
-			"gameId": "CockStrategy_01",
+			"gameId": "cock01",
 			"frameTime": 1.0,
 			"active": true,
 			"operatorIds": [
@@ -47,11 +47,11 @@
 			],
 			"roomConfigs": [
 				{
-					"roomId": "CockStrategy_01_small",
+					"roomId": "cock01001",
 					"limitLevel": 0
 				},
 				{
-					"roomId": "CockStrategy_01_medium",
+					"roomId": "cock01002",
 					"limitLevel": 1
 				}
 			]

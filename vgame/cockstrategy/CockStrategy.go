@@ -398,7 +398,7 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 	return success
 }
 
-func (g *CockStrategy) OnMessage(connId com.ConnectionId, msg string) {
+func (g *CockStrategy) OnMessage(roomId com.RoomId, connId com.ConnectionId, msg string) {
 	//fmt.Printf("game: %s OnMessage: %s\n", g.Name, msg)
 	connInfo, ok := g.Server.GetConnectionInfo(connId)
 	if !ok {
@@ -411,7 +411,7 @@ func (g *CockStrategy) OnMessage(connId com.ConnectionId, msg string) {
 	}
 
 	cmd := data["CMD"].(string)
-	roomId := data["RoomId"].(string)
+	//roomId := data["RoomId"].(string)
 	room := g.Server.RoomMng.GetRoom(connInfo.OperatorId, com.RoomId(roomId))
 	if room == nil {
 		fmt.Println("OnMessage roomId == nil ", cmd)
@@ -435,7 +435,7 @@ func (g *CockStrategy) OnMessage(connId com.ConnectionId, msg string) {
 		} else {
 			res := (&com.BetFailResponse{}).Init(room)
 			res.FailCode = com.RES_FAIL_BET_REJECT
-			g.Server.SendPrivateMessage(connId, res)
+			g.Server.SendPrivateMessage(room.RoomId, connId, res)
 		}
 	}
 

@@ -26,8 +26,9 @@ type ConnectionInfo struct {
 	ConnId     ConnectionId
 	UserId     UserId
 	Currency   Currency
-	RoomIdMap  map[RoomId]bool
-	Mutex      sync.Mutex
+	// one user can join many room at the same time with one connection
+	RoomIdMap map[RoomId]bool
+	Mutex     sync.Mutex
 }
 
 func (info *ConnectionInfo) Init() *ConnectionInfo {
@@ -187,7 +188,7 @@ func (server *GameServer) performTask(task *Task) {
 		for _, param := range task.params {
 			msg := (*string)(param)
 			connInfo.Mutex.Lock()
-			game.OnMessage(ConnId, *msg)
+			game.OnMessage(roomId, ConnId, *msg)
 			connInfo.Mutex.Unlock()
 		}
 	}
@@ -206,22 +207,23 @@ func (server *GameServer) GetConnectionInfo(ConnId ConnectionId) (*ConnectionInf
 	return info, ok
 }
 
-func (server *GameServer) removeConnectionInfo(ConnId ConnectionId) {
+func (server *GameServer) removeConnectionInfo(connId ConnectionId) {
 	server.connMapMutex.Lock()
-	delete(server.connMap, ConnId)
+	delete(server.connMap, connId)
 	server.connMapMutex.Unlock()
 }
 
 // global functions --------------------------------------
 
-func (server *GameServer) SendPublicMessage(ConnIds []ConnectionId, data any) {
+func (server *GameServer) SendPublicMessage(roomId RoomId, connIds []ConnectionId, data any) {
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		VUtils.PrintError(err)
 	}
 	msg := ProxyBroadcastMessage{}
 	msg.CMD = PROXY_CMD_BROADCAST
-	msg.ConnIds = ConnIds
+	msg.ConnIds = connIds
+	msg.RoomId = roomId
 	//msg.Data = b64.URLEncoding.EncodeToString(bytes)
 	msg.Data = string(bytes)
 
@@ -234,7 +236,7 @@ func (server *GameServer) SendPublicMessage(ConnIds []ConnectionId, data any) {
 	server.proxyConn.Send(content, nil, nil)
 }
 
-func (server *GameServer) SendPrivateMessage(ConnId ConnectionId, data any) {
+func (server *GameServer) SendPrivateMessage(roomId RoomId, ConnId ConnectionId, data any) {
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		VUtils.PrintError(err)
@@ -242,6 +244,7 @@ func (server *GameServer) SendPrivateMessage(ConnId ConnectionId, data any) {
 	msg := ProxyBroadcastMessage{}
 	msg.CMD = PROXY_CMD_BROADCAST
 	msg.ConnIds = []ConnectionId{ConnId}
+	msg.RoomId = roomId
 	//msg.Data = b64.URLEncoding.EncodeToString(bytes)
 	msg.Data = string(bytes)
 
@@ -282,7 +285,7 @@ func (server *GameServer) OnClientDisconnect(ConnId ConnectionId) {
 	if !ok {
 		return
 	}
-	for roomId, _ := range conInfo.RoomIdMap {
+	for roomId := range conInfo.RoomIdMap {
 		room := server.RoomMng.GetRoom(conInfo.OperatorId, roomId)
 		if room != nil {
 			room.LeaveRoom(ConnId)
@@ -385,13 +388,13 @@ func (s *GameServer) testVsocket() {
 		go func() {
 			strParam := ClientStringGameResponse{}
 			strParam.Str = "hi from GameServer 1" + strconv.Itoa(i)
-			s.SendPublicMessage([]ConnectionId{}, strParam)
+			s.SendPublicMessage("000000000", []ConnectionId{}, strParam)
 			strParam = ClientStringGameResponse{}
 			strParam.Str = "hi from GameServer 2" + strconv.Itoa(i)
-			s.SendPublicMessage([]ConnectionId{}, strParam)
+			s.SendPublicMessage("000000000", []ConnectionId{}, strParam)
 			strParam = ClientStringGameResponse{}
 			strParam.Str = "hi from GameServer 3" + strconv.Itoa(i)
-			s.SendPublicMessage([]ConnectionId{}, strParam)
+			s.SendPublicMessage("000000000", []ConnectionId{}, strParam)
 		}()
 	}
 
@@ -539,7 +542,7 @@ func (server *GameServer) Maintenance() {
 	res := ClientNumberGameResponse{}
 	res.CMD = CMD_MAINTENANCE
 	ConnIds := server.getAllUserConns()
-	server.SendPublicMessage(ConnIds, res)
+	server.SendPublicMessage(ROOM_ID_NONE, ConnIds, res)
 
 	time.Sleep(time.Second * 2)
 

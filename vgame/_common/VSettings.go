@@ -53,7 +53,7 @@ var (
 	WALLET_TABLE = "wallet"
 
 	MAX_ROUND          = 9999
-	ROOM_ID_LENGTH     = 6
+	ROOM_ID_LENGTH     = 9
 	OPERATOR_ID_LENGTH = 3
 	TREND_PAGE_SIZE    = 70
 	HIS_PAGE_SIZE      = 20

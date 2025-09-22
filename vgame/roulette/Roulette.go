@@ -481,7 +481,7 @@ BetRequest
 		public Platform:string;
 	}
 */
-func (game *Roulette) OnMessage(connId com.ConnectionId, msg string) {
+func (game *Roulette) OnMessage(roomId com.RoomId, connId com.ConnectionId, msg string) {
 	//fmt.Printf("game: %s OnMessage: %s\n", game.name, *msg)
 	connInfo, ok := game.Server.GetConnectionInfo(connId)
 	if !ok {
@@ -494,7 +494,7 @@ func (game *Roulette) OnMessage(connId com.ConnectionId, msg string) {
 	}
 
 	cmd := data["CMD"].(string)
-	roomId := data["RoomId"].(string)
+	//roomId := data["RoomId"].(string)
 	room := game.Server.RoomMng.GetRoom(connInfo.OperatorId, com.RoomId(roomId))
 	if room == nil {
 		fmt.Println("OnMessage roomId == nil ", cmd)
@@ -518,7 +518,7 @@ func (game *Roulette) OnMessage(connId com.ConnectionId, msg string) {
 		} else {
 			res := (&com.BetFailResponse{}).Init(room)
 			res.FailCode = com.RES_FAIL_BET_REJECT
-			game.Server.SendPrivateMessage(connId, res)
+			game.Server.SendPrivateMessage(room.RoomId, connId, res)
 		}
 	}
 

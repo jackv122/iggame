@@ -8,6 +8,9 @@ type GameId string
 type GameNumber uint64
 type BettingId uint64
 type RoomId string
+
+const ROOM_ID_NONE = "000000000"
+
 type RoundId uint32
 type SeatId uint8
 type BetKind uint8
@@ -32,9 +35,9 @@ type BlockChainTxResult struct {
 }
 
 const (
-	IDRoulette     GameId = "Roulette_01"
-	IDCockStrategy GameId = "CockStrategy_01"
-	IDGameA        GameId = "GameA_01"
+	IDGameA        GameId = "game01"
+	IDRoulette     GameId = "roul01"
+	IDCockStrategy GameId = "cock01"
 
 	GAME_ENCRYPT      = 0
 	PROXY_ENCRYPT     = 1
@@ -124,6 +127,7 @@ type ProxyRegisterRoomMessage struct {
 }
 
 type ProxyBroadcastMessage struct {
+	RoomId  RoomId
 	CMD     int
 	ConnIds []ConnectionId // use incase broadcast to client
 	Data    string

@@ -12,6 +12,8 @@ const { vutils } = require('./vutils.js')
 const { VSocket } = require('./vsocket.js')
 const url = require('url');
 
+const ROOM_ID_NONE = '000000000'
+
 // global config ----------------
 // all TCP server must use 127.0.0.1, dont use localhost
 const PROXY_TCP_HOST = "127.0.0.1" // for security always config it as a LAN ip
@@ -153,7 +155,7 @@ function checkSessionValid(ws, token, operatorId) {
                 let clientRes = JSON.stringify({
                     CMD: CMD_AUTH_EXPIRED // session timeout on portal - back to portal home page for login
                 })
-                let ok = ws.send(clientRes);
+                safeSend(ws, clientRes);
             }
         })
     }
@@ -174,7 +176,7 @@ function onAuthUserSuccess(ws, sessionRes) {
         let clientRes = JSON.stringify({
             CMD: CMD_DOUBLE_LOGIN
         })
-        let ok = oldWs.send(clientRes);
+        safeSend(oldWs, clientRes)
         // delete sessionToken before closing ws for double login case.
         oldWs['isDoubleLogin'] = true;
         oldWs.close();
@@ -224,7 +226,7 @@ function onAuthUserSuccess(ws, sessionRes) {
             })
             ws.currency = userWallet.BalanceInfo.Currency;
             try {
-                let ok = ws.send(message);
+                safeSend(ws, message)
             }
             catch(e) {
                 console.log('onAuthUserSuccess error userId ' + userId);
@@ -284,7 +286,7 @@ function onGameServerMsgHdl(vs, requestId, data) {
                     if (ws && !ws.isPaused) {
                         //let msg = Buffer.from(param.Data, 'base64').toString('utf-8')
                         let msg = param.Data;
-                        safeSend(ws, msg)
+                        safeSend(ws, msg, param.RoomId)
                     }
                 }
                 break;
@@ -295,9 +297,9 @@ function onGameServerMsgHdl(vs, requestId, data) {
     }
 }
 
-function safeSend(ws, msg) {
+function safeSend(ws, msg, roomId = ROOM_ID_NONE) {
     try {
-        ws.send(msg)
+        ws.send(roomId + msg)
     }
     catch(e) {
         onWsClose(ws);
@@ -401,7 +403,7 @@ function startUWS() {
                     let operatorId = ws.operatorId;
                     let userId = ws.userId;
 
-                    if (roomId == '000000') { // no room id, specific CMD for proxy process only
+                    if (roomId == ROOM_ID_NONE) { // no room id, specific CMD for proxy process only
                         let data = JSON.parse(dataStr)
                         // check if the messae is authenticate  
                         switch (data.CMD) {
@@ -442,7 +444,7 @@ function startUWS() {
                                             GameId: param.GameId,
                                             Items: res.Items
                                         })
-                                        let ok = ws.send(message);
+                                        safeSend(ws, msg)
                                     }
                                 }, null)
                                 break;

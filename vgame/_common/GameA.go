@@ -31,7 +31,7 @@ func (game *GameA) Update(dt float64) {
 	//fmt.Println("game Update: ", game.name)
 }
 
-func (game *GameA) OnMessage(connId ConnectionId, msg string) {
+func (game *GameA) OnMessage(roomId RoomId, connId ConnectionId, msg string) {
 	//fmt.Printf("game: %s OnMessage: %s\n", game.name, *msg)
 }
 

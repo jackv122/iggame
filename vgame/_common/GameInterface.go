@@ -3,7 +3,7 @@ package com
 type GameInterface interface {
 	Start()
 	Update(dt float64)
-	OnMessage(ConnectionId, string)
+	OnMessage(RoomId, ConnectionId, string)
 	Stop()
 	GetTimeKeeper() *TimeKeeper
 	InitRoomForGame(room *GameRoom)
