@@ -1,5 +1,9 @@
 
 
+-- Example: create daily partitions for Aug 2025
+-- CALL add_betting_partitions_daily('2025-08-01','2025-09-01');
+
+
 mysql --host=localhost --port=3306 --user=root --password=hailuava12a6 vwallet_001
 
 ALTER TABLE betting
@@ -165,3 +169,45 @@ DELIMITER ;
 
 -- Drops all partitions strictly before 2025-01 (i.e., < '2025-01-01')
 CALL drop_betting_partitions_before('2025-09-01');
+
+-- Add monthly partitions by splitting MAXVALUE month-by-month ---------------
+DELIMITER //
+CREATE PROCEDURE add_betting_partitions_monthly(IN p_start DATE, IN p_end DATE)
+BEGIN
+  DECLARE d DATE;
+  DECLARE next_m DATE;
+  DECLARE pname VARCHAR(16);
+  DECLARE cnt INT;
+
+  SET d = DATE_FORMAT(p_start, '%Y-%m-01');
+  WHILE d < p_end DO
+    SET next_m = DATE_ADD(d, INTERVAL 1 MONTH);
+    SET pname = DATE_FORMAT(d, 'p%Y_%m');
+
+    -- Skip if this monthly partition already exists
+    SELECT COUNT(*) INTO cnt
+    FROM information_schema.PARTITIONS
+    WHERE table_schema = DATABASE()
+      AND table_name = 'betting'
+      AND partition_name = pname;
+
+    IF cnt = 0 THEN
+      SET @sql = CONCAT(
+        'ALTER TABLE betting REORGANIZE PARTITION pmax INTO (',
+        'PARTITION ', pname, ' VALUES LESS THAN (''', DATE_FORMAT(next_m, '%Y-%m-%d'), '''), ',
+        'PARTITION pmax VALUES LESS THAN (MAXVALUE))'
+      );
+      SELECT @sql AS exec_sql; -- log
+      PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
+    END IF;
+
+    SET d = next_m;
+  END WHILE;
+END//
+DELIMITER ;
+
+
+-- Example: create monthly partitions for 2025
+-- CALL add_betting_partitions_monthly('2025-01-01','2026-01-01');
+
+
