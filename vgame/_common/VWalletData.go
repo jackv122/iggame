@@ -14,6 +14,13 @@ type BaseWalletResponse struct {
 	IntVal    int
 }
 
+func (res *BaseWalletResponse) Init() *BaseWalletResponse {
+	res.ErrorCode = 0
+	res.ErrorMsg = ""
+	res.IntVal = 0
+	return res
+}
+
 type HistoryRecord struct {
 	GameNumber GameNumber
 	RoundId    RoundId

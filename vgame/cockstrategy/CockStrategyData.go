@@ -6,6 +6,7 @@ import (
 
 const (
 	BET_Straight = 0
+	GAME_VERSION = "1.0.0"
 )
 
 type CockID com.BetType
@@ -17,11 +18,18 @@ const (
 	COCK_004 CockID = "004"
 )
 
+type GameInitData struct {
+	Cock_1 *CockData
+	Cock_2 *CockData
+}
+
 type CockStrategyData struct {
 }
 
 func (d *CockStrategyData) init(g *CockStrategy) *CockStrategyData {
-	g.PayoutMap[com.BetKind(BET_Straight)] = 35 + 1
+
+	// payout
+	g.PayoutMap[com.BetKind(BET_Straight)] = 1 + 0.95
 
 	// init BetKindMap
 	g.BetKindMap[string(COCK_001)] = com.BetKind(BET_Straight)

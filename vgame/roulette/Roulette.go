@@ -224,7 +224,7 @@ func (g *Roulette) OnEnterStarting() {
 			// remove old bettings from wallet operator
 			param := com.VUtils.WalletLocalMessageUint64(operatorId, com.WCMD_CLEAR_BETTING, uint64(oldGameNumber))
 			g.Server.WalletConn.Send(param, func(vs *com.VSocket, requestId uint64, resData []byte) {
-				res := com.BaseGameResponse{}
+				res := com.BaseWalletResponse{}
 				err := json.Unmarshal(resData, &res)
 				if err != nil {
 					com.VUtils.PrintError(err)

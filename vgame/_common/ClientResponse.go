@@ -141,6 +141,7 @@ type RoomInfoContent struct {
 	TotalBetTime    float64
 	PlayerBets      [][]*BetPlace
 	PayoutContent   *PayoutContent
+	GameInitData    interface{}
 	Result          string
 	Txh             string
 	W               string
@@ -180,10 +181,11 @@ type ClientRoomInfoResponse struct {
 	Content *RoomInfoContent
 }
 
-func (res *ClientRoomInfoResponse) Init(room *GameRoom, userId UserId) *ClientRoomInfoResponse {
+func (res *ClientRoomInfoResponse) Init(room *GameRoom, userId UserId, gameInitData interface{}) *ClientRoomInfoResponse {
 	res.CMD = CMD_ROOM_INFO
 	res.RoomId = room.RoomId
 	res.Content = (&RoomInfoContent{}).Init(room, userId)
+	res.Content.GameInitData = gameInitData
 
 	return res
 }

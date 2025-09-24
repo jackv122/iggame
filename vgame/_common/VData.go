@@ -296,6 +296,7 @@ type BaseGameResponse struct {
 	RoomId     RoomId
 	GameNumber GameNumber
 	RoundId    RoundId
+	Data       interface{}
 }
 
 func (res *BaseGameResponse) Init(room *GameRoom, cmd string) *BaseGameResponse {

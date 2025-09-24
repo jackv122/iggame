@@ -91,6 +91,8 @@ type GameRoom struct {
 	roomConfig *RoomConfig
 
 	roomStatsChanged bool
+
+	GameInitData interface{}
 }
 
 func (room *GameRoom) Init(server *GameServer, operatorId OperatorID) *GameRoom {
@@ -100,6 +102,7 @@ func (room *GameRoom) Init(server *GameServer, operatorId OperatorID) *GameRoom 
 	room.maxConn = 10000
 	room.roomStatsChanged = true
 	room.connList = []ConnectionId{}
+	room.GameInitData = nil
 	room.BetInfosMap = map[UserId]*UserBetInfo{}
 
 	// checking valid bettype for better debugging
@@ -335,7 +338,7 @@ func (room *GameRoom) OnMessage(cmd string, connInfo *ConnectionInfo, msg string
 	//fmt.Println("OnMessage === ", cmd)
 	switch cmd {
 	case CMD_GET_ROOM_INFO:
-		res := (&ClientRoomInfoResponse{}).Init(room, connInfo.UserId)
+		res := (&ClientRoomInfoResponse{}).Init(room, connInfo.UserId, room.GameInitData)
 		room.Server.SendPrivateMessage(room.RoomId, connInfo.ConnId, res)
 	case CMD_GET_TRENDS:
 		game := GetGameInterface(room.GameId, room.Server)

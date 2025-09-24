@@ -15,11 +15,6 @@ type CockData struct {
 	Agility  int
 }
 
-type GameInitData struct {
-	Cock_1 *CockData
-	Cock_2 *CockData
-}
-
 type CockStrategy struct {
 	com.BaseGame
 	// payout
@@ -254,7 +249,7 @@ func (g *CockStrategy) OnEnterStarting() {
 			// remove old bettings from wallet operator
 			param := com.VUtils.WalletLocalMessageUint64(operatorId, com.WCMD_CLEAR_BETTING, uint64(oldGameNumber))
 			g.Server.WalletConn.Send(param, func(vs *com.VSocket, requestId uint64, resData []byte) {
-				res := com.BaseGameResponse{}
+				res := com.BaseWalletResponse{}
 				err := json.Unmarshal(resData, &res)
 				if err != nil {
 					com.VUtils.PrintError(err)
@@ -271,7 +266,9 @@ func (g *CockStrategy) OnEnterStarting() {
 
 	for _, room := range g.RoomList {
 		room.ResetBets()
+		room.GameInitData = g.gameInitData
 		res := (&com.BaseGameResponse{}).Init(room, com.CMD_START_GAME)
+		res.Data = g.gameInitData
 		room.BroadcastMessage(res)
 	}
 }

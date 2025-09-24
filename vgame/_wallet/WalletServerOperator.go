@@ -662,7 +662,7 @@ func (s *WalletServerOperator) writeBetting(userId com.UserId) bool {
 }
 
 func (s *WalletServerOperator) clearBettingTcp(vs *com.VSocket, requestId uint64, body *[]byte) {
-	response := &com.BaseWalletResponse{}
+	response := (&com.BaseWalletResponse{}).Init()
 	defer func() {
 		res, err := json.Marshal(response)
 		if err != nil {
