@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
+	"math/rand"
 	com "vgame/_common"
 )
 
@@ -18,9 +18,9 @@ type CockData struct {
 type CockStrategy struct {
 	com.BaseGame
 	// payout
-	GameData     *CockStrategyData
-	gameInitData *GameInitData
-	ResultNum    int
+	GameData       *CockStrategyData
+	gameInitData   *GameInitData
+	gameResultData *GameResultData
 }
 
 // work as constructor
@@ -30,7 +30,7 @@ func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 	stateTimes := []float64{1, 30, 3, 0, 10, 8.0} // 0 mean wait forever
 	g.StateMng = (&com.StateManager{}).Init(gameStates, stateTimes, g.onEnterState, g.onExitState)
 	g.GameData = (&CockStrategyData{}).init(g)
-	g.ResultNum = -1
+	g.gameResultData = nil
 	return g
 }
 
@@ -72,8 +72,11 @@ func (g *CockStrategy) LoadGameState() bool {
 		g.Server.Stop()
 		return false
 	}
+
+	g.gameResultData = nil
+
 	if result != "" {
-		g.ResultNum, err = strconv.Atoi(result)
+		err = json.Unmarshal([]byte(result), &g.gameResultData)
 		if err != nil {
 			msg := fmt.Sprintf("can not parse game result for gameId %s and result %s ", g.GameId, result)
 			com.VUtils.PrintError(errors.New(msg))
@@ -114,12 +117,18 @@ func (g *CockStrategy) LoadGameState() bool {
 }
 
 func (g *CockStrategy) SaveGameState() {
-	resultStr := strconv.Itoa(g.ResultNum)
 	stateDataStr, err := json.Marshal(g.gameInitData)
 	if err != nil {
 		com.VUtils.PrintError(err)
 		return
 	}
+
+	resultStr, err := json.Marshal(g.gameResultData)
+	if err != nil {
+		com.VUtils.PrintError(err)
+		return
+	}
+
 	str := fmt.Sprintf("%d_%s_%d_%d_%s_%s_%s", g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, resultStr, g.Txh, g.W)
 	hash := com.VUtils.HashString(str)
 	_, err2 := g.Server.DB.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, data=?, tx=?, w=?, h=? WHERE gamenumber=?", g.StateMng.CurrState, g.StateMng.StateTime, resultStr, stateDataStr, g.Txh, g.W, hash, g.GameNumber)
@@ -185,7 +194,7 @@ func (g *CockStrategy) OnEnterStarting() {
 	g.Txh = ""
 	g.W = ""
 	g.TickTime = 0
-	g.ResultNum = -1
+	g.gameResultData = nil
 	if g.RoundId > com.RoundId(com.MAX_ROUND) {
 		g.RoundId = 1
 	}
@@ -203,6 +212,7 @@ func (g *CockStrategy) OnEnterStarting() {
 	}
 
 	g.gameInitData = &GameInitData{
+		Version: GAME_VERSION,
 		Cock_1: &CockData{
 			Name:     "Thunder",
 			ID:       COCK_001,
@@ -291,7 +301,7 @@ func (g *CockStrategy) OnEnterGenResult() {
 
 func (g *CockStrategy) OnEnterResult() {
 	fmt.Println("CockStrategy entering RESULT state")
-	if g.ResultNum < 0 {
+	if g.gameResultData == nil {
 		msg := fmt.Sprintf("game %s has no result when payout", g.GameId)
 		com.VUtils.PrintError(errors.New(msg))
 		g.Server.Maintenance()
@@ -299,8 +309,7 @@ func (g *CockStrategy) OnEnterResult() {
 	}
 	// calculate payout & save DB but not send payout to player, payout should send when state payout start
 	for _, room := range g.RoomList {
-		result := strconv.Itoa(g.ResultNum)
-		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, result, g.Txh, g.W)
+		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, g.gameResultData, g.Txh, g.W)
 		room.BroadcastMessage(res)
 	}
 	// run it on other thread
@@ -312,7 +321,7 @@ func (g *CockStrategy) OnEnterPayout() {
 }
 
 func (g *CockStrategy) payout() {
-	if g.ResultNum < 0 {
+	if g.gameResultData == nil {
 		msg := fmt.Sprintf("Game %s has no result when payout", g.GameId)
 		com.VUtils.PrintError(errors.New(msg))
 		g.Server.Maintenance()
@@ -355,7 +364,7 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 		betDetail := ""
 		for _, betPlace := range betInfo.ConfirmedBetState {
 			betPay := com.Amount(0)
-			isWin := true
+			isWin := g.gameResultData.Winner == CockID(betPlace.Type)
 			if isWin {
 				betKind := g.BetKindMap[string(betPlace.Type)]
 				betPay = g.PayoutMap[betKind] * betPlace.Amount
@@ -439,22 +448,24 @@ func (g *CockStrategy) OnMessage(roomId com.RoomId, connId com.ConnectionId, msg
 	room.OnMessage(cmd, connInfo, msg)
 }
 
-func (g *CockStrategy) GetResultNum() int {
-	return g.ResultNum
-}
-
 func (g *CockStrategy) GetResultString() string {
-	return fmt.Sprintf("%d", g.ResultNum)
+	return fmt.Sprintf("Winner: %s", g.gameResultData.Winner)
 }
 
 func (game *CockStrategy) GetGameResult() string {
-	if game.ResultNum < 0 {
+	if game.gameResultData == nil {
 		return ""
 	}
-	return fmt.Sprintf("%d", game.ResultNum)
+	return fmt.Sprintf("Winner: %s", game.gameResultData.Winner)
 }
 
 func (g *CockStrategy) genResult() {
-	// Empty implementation - will be implemented later
-	fmt.Println("CockStrategy genResult() - empty implementation")
+	winnerIndex := rand.Intn(2) // 0, 1
+	cockIds := []CockID{g.gameInitData.Cock_1.ID, g.gameInitData.Cock_2.ID}
+	winner := cockIds[winnerIndex]
+
+	g.gameResultData = &GameResultData{
+		Version: GAME_VERSION,
+		Winner:  winner,
+	}
 }

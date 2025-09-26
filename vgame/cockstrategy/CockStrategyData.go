@@ -19,8 +19,14 @@ const (
 )
 
 type GameInitData struct {
-	Cock_1 *CockData
-	Cock_2 *CockData
+	Version string
+	Cock_1  *CockData
+	Cock_2  *CockData
+}
+
+type GameResultData struct {
+	Version string
+	Winner  CockID
 }
 
 type CockStrategyData struct {

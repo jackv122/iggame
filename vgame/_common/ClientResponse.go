@@ -85,19 +85,19 @@ type ClientGameResultResponse struct {
 	RoomId     RoomId
 	GameNumber GameNumber
 	RoundId    RoundId
-	Str        string
+	Result     interface{}
 	Txh        string
 	W          string
 }
 
-func (res *ClientGameResultResponse) Init(room *GameRoom, cmd string, str string, Txh string, W string) *ClientGameResultResponse {
+func (res *ClientGameResultResponse) Init(room *GameRoom, cmd string, result interface{}, Txh string, W string) *ClientGameResultResponse {
 	res.CMD = cmd
 	res.GameId = room.GameId
 	res.RoomId = room.RoomId
 	game := GetGameInterface(room.GameId, room.Server)
 	res.GameNumber = game.GetGameNumber()
 	res.RoundId = game.GetRoundId()
-	res.Str = str
+	res.Result = result
 	res.Txh = Txh
 	res.W = W
 	return res
