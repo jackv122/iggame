@@ -110,6 +110,7 @@ BEGIN
   SET @ddl = CONCAT(@ddl, 'PARTITION pmax VALUES LESS THAN (MAXVALUE))');
   PREPARE s FROM @ddl; EXECUTE s; DEALLOCATE PREPARE s;
 END//
+DELIMITER ;
 -- Example: partition from 2025-01 to 2027-01
 CALL partition_betting_monthly('2025-01-01','2027-01-01');
 
@@ -170,7 +171,6 @@ DELIMITER ;
 -- Drops all partitions strictly before 2025-01 (i.e., < '2025-01-01')
 CALL drop_betting_partitions_before('2025-09-01');
 
--- Add monthly partitions by splitting MAXVALUE month-by-month ---------------
 DELIMITER //
 CREATE PROCEDURE add_betting_partitions_monthly(IN p_start DATE, IN p_end DATE)
 BEGIN
