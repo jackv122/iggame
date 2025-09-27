@@ -92,7 +92,7 @@ func (g *CockStrategy) LoadGameState() bool {
 	if gameDataStr != "" {
 		err = json.Unmarshal([]byte(gameDataStr), &g.gameInitData)
 		if err != nil {
-			msg := fmt.Sprintf("can not parse game data for gameId %s and result %s ", g.GameId, result)
+			msg := fmt.Sprintf("can not parse game data for gameId %s and result %s ", g.GameId, gameDataStr)
 			com.VUtils.PrintError(errors.New(msg))
 			g.Server.Maintenance()
 			return true
