@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"time"
 	com "vgame/_common"
 )
 
@@ -54,13 +55,14 @@ func (g *CockStrategy) OnStartComplete() {
 }
 
 func (g *CockStrategy) LoadGameState() bool {
-	row := g.Server.DB.QueryRow("SELECT gamenumber, roundid, state, statetime, result, tx, w, h FROM gamestate WHERE gameid=?", g.GameId)
+	row := g.Server.DB.QueryRow("SELECT gamenumber, roundid, state, statetime, result, data, tx, w, h FROM gamestate WHERE gameid=?", g.GameId)
 
 	var currState = com.GameState(com.GAME_STATE_STARTING)
 	result := ""
+	gameDataStr := ""
 	hash := ""
 	statetime := float64(0)
-	err := row.Scan(&g.GameNumber, &g.RoundId, &currState, &statetime, &result, &g.Txh, &g.W, &hash)
+	err := row.Scan(&g.GameNumber, &g.RoundId, &currState, &statetime, &result, &gameDataStr, &g.Txh, &g.W, &hash)
 	if err != nil {
 		fmt.Println("not existing previous state data for game ", g.GameId)
 		return false
@@ -79,6 +81,18 @@ func (g *CockStrategy) LoadGameState() bool {
 		err = json.Unmarshal([]byte(result), &g.gameResultData)
 		if err != nil {
 			msg := fmt.Sprintf("can not parse game result for gameId %s and result %s ", g.GameId, result)
+			com.VUtils.PrintError(errors.New(msg))
+			g.Server.Maintenance()
+			return true
+		}
+	}
+
+	g.gameInitData = nil
+
+	if gameDataStr != "" {
+		err = json.Unmarshal([]byte(gameDataStr), &g.gameInitData)
+		if err != nil {
+			msg := fmt.Sprintf("can not parse game data for gameId %s and result %s ", g.GameId, result)
 			com.VUtils.PrintError(errors.New(msg))
 			g.Server.Maintenance()
 			return true
@@ -117,7 +131,7 @@ func (g *CockStrategy) LoadGameState() bool {
 }
 
 func (g *CockStrategy) SaveGameState() {
-	stateDataStr, err := json.Marshal(g.gameInitData)
+	gameDataStr, err := json.Marshal(g.gameInitData)
 	if err != nil {
 		com.VUtils.PrintError(err)
 		return
@@ -131,7 +145,7 @@ func (g *CockStrategy) SaveGameState() {
 
 	str := fmt.Sprintf("%d_%s_%d_%d_%s_%s_%s", g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, resultStr, g.Txh, g.W)
 	hash := com.VUtils.HashString(str)
-	_, err2 := g.Server.DB.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, data=?, tx=?, w=?, h=? WHERE gamenumber=?", g.StateMng.CurrState, g.StateMng.StateTime, resultStr, stateDataStr, g.Txh, g.W, hash, g.GameNumber)
+	_, err2 := g.Server.DB.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, data=?, tx=?, w=?, h=? WHERE gamenumber=?", g.StateMng.CurrState, g.StateMng.StateTime, resultStr, gameDataStr, g.Txh, g.W, hash, g.GameNumber)
 	if err2 != nil {
 		com.VUtils.PrintError(err)
 		g.Server.Maintenance()
@@ -226,12 +240,12 @@ func (g *CockStrategy) OnEnterStarting() {
 			Agility:  90,
 		},
 	}
-	stateData, err := json.Marshal(&g.gameInitData)
+	gameDataStr, err := json.Marshal(&g.gameInitData)
 	if err != nil {
 		com.VUtils.PrintError(err)
 		return
 	}
-	response, err3 := tx.Exec("INSERT INTO gamestate(gameid, roundid, state, statetime, result, data) VALUES(?,?,?,?,?,?)", g.GameId, g.RoundId, com.GAME_STATE_STARTING, 0, "", stateData)
+	response, err3 := tx.Exec("INSERT INTO gamestate(gameid, roundid, state, statetime, result, data) VALUES(?,?,?,?,?,?)", g.GameId, g.RoundId, com.GAME_STATE_STARTING, 0, "", gameDataStr)
 	if err3 != nil {
 		tx.Rollback()
 		com.VUtils.PrintError(err3)
@@ -468,4 +482,6 @@ func (g *CockStrategy) genResult() {
 		Version: GAME_VERSION,
 		Winner:  winner,
 	}
+	time.Sleep(5 * time.Second)
+	g.StateMng.NextState()
 }
