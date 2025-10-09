@@ -355,7 +355,7 @@ func (room *GameRoom) OnMessage(cmd string, connInfo *ConnectionInfo, msg string
 	}
 }
 
-func (room *GameRoom) ProcessBets(connId ConnectionId, state []*BetPlace) {
+func (room *GameRoom) ProcessBets(connId ConnectionId, clientRequestId string, state []*BetPlace) {
 	betState := []*BetPlace{}
 
 	// IMPORTANT: check valid betState ----
@@ -414,7 +414,7 @@ func (room *GameRoom) ProcessBets(connId ConnectionId, state []*BetPlace) {
 
 	betInfo.setWatingBetState(betState)
 	if betInfo.getSendingBetState() == nil {
-		room.doBetting(connInfo, betInfo)
+		room.doBetting(clientRequestId, connInfo, betInfo)
 	}
 }
 
@@ -426,7 +426,7 @@ func (room *GameRoom) SaveBetting(betInfo *UserBetInfo, betDetail string, change
 	bytes := VUtils.Uint16ToBytes(WCMD_SAVE_BETTING)
 	param := BettingRecord{}
 
-	param.Result = game.GetGameResult()
+	param.Result = game.GetGameResultString()
 	param.BettingId = betInfo.DbBettingId
 	param.GameId = room.GameId
 	param.GameNumber = game.GetGameNumber()
@@ -475,7 +475,7 @@ func (room *GameRoom) ResumeBetting(bettings []*BettingRecord) {
 	}
 }
 
-func (room *GameRoom) doBetting(connInfo *ConnectionInfo, betInfo *UserBetInfo) {
+func (room *GameRoom) doBetting(clientRequestId string, connInfo *ConnectionInfo, betInfo *UserBetInfo) {
 
 	betInfo.Mutex.Lock()
 	if betInfo.WaitingBetState == nil {
@@ -512,10 +512,12 @@ func (room *GameRoom) doBetting(connInfo *ConnectionInfo, betInfo *UserBetInfo) 
 			betInfo.Balance = res.Balance
 			// success, no need to return new balance to client
 			clientRes := (&ClientNumberGameResponse{}).Init(room, CMD_BET_UPDATE_SUCCEED)
+			clientRes.ClientRequestId = clientRequestId
 			clientRes.Val = truncateAmount(res.Balance)
 			room.sendMessage(connInfo.ConnId, clientRes)
 		} else {
 			clientRes := (&BetFailResponse{}).Init(room)
+			clientRes.ClientRequestId = clientRequestId
 
 			clientRes.FailCode = res.ErrorCode
 			room.sendMessage(connInfo.ConnId, clientRes)

@@ -266,14 +266,15 @@ const (
 // /{CMD: GameCMD.BET_UPDATE_FAIL, Content: {Balance: 100.0, BetTypes:[], BetAmonts:[]} }
 
 type BetFailResponse struct {
-	CMD        string
-	GameId     GameId
-	RoomId     RoomId
-	RoundId    RoundId
-	FailCode   int
-	Balance    Amount
-	BetTypes   []BetType
-	BetAmounts []Amount
+	CMD             string
+	GameId          GameId
+	ClientRequestId string
+	RoomId          RoomId
+	RoundId         RoundId
+	FailCode        int
+	Balance         Amount
+	BetTypes        []BetType
+	BetAmounts      []Amount
 }
 
 func (res *BetFailResponse) Init(room *GameRoom) *BetFailResponse {

@@ -20,8 +20,9 @@ type GameInterface interface {
 
 	SaveGameState()
 	LoadGameState() bool
-	GetGameResult() string
-	GetResultString() string
+	// for saving to data base
+	GetGameResultString() string
+	GetResultData() interface{}
 	GetTxh() string
 	GetW() string
 }

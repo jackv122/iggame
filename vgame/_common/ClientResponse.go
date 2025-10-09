@@ -42,11 +42,12 @@ func (res *ClientIntGameResponse) Init(room *GameRoom, cmd string) *ClientIntGam
 }
 
 type ClientNumberGameResponse struct {
-	CMD     string
-	GameId  GameId
-	RoomId  RoomId
-	RoundId RoundId
-	Val     Amount
+	CMD             string
+	GameId          GameId
+	ClientRequestId string
+	RoomId          RoomId
+	RoundId         RoundId
+	Val             Amount
 }
 
 func (res *ClientNumberGameResponse) Init(room *GameRoom, cmd string) *ClientNumberGameResponse {
@@ -140,11 +141,14 @@ type RoomInfoContent struct {
 	RemainStateTime float64
 	TotalBetTime    float64
 	PlayerBets      [][]*BetPlace
-	PayoutContent   *PayoutContent
-	GameInitData    interface{}
-	Result          string
-	Txh             string
-	W               string
+
+	GameInitData interface{}
+
+	PayoutContent *PayoutContent
+	Result        interface{}
+
+	Txh string
+	W   string
 }
 
 func (Content *RoomInfoContent) Init(room *GameRoom, userId UserId) *RoomInfoContent {
@@ -156,7 +160,7 @@ func (Content *RoomInfoContent) Init(room *GameRoom, userId UserId) *RoomInfoCon
 	Content.SeatId = 0
 	Content.RemainStateTime = game.GetRemainStateTime()
 	Content.TotalBetTime = game.GetTotalBetTime()
-	Content.Result = game.GetResultString()
+	Content.Result = game.GetResultData()
 	Content.Txh = game.GetTxh()
 	Content.W = game.GetW()
 

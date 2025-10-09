@@ -442,6 +442,7 @@ func (g *CockStrategy) OnMessage(roomId com.RoomId, connId com.ConnectionId, msg
 	case com.CMD_SEND_BET_UPDATE:
 		if currState == com.GAME_STATE_BETTING || currState == com.GAME_STATE_CLOSE_BETTING {
 			// BetRequest
+			clientRequestId := data["ClientRequestId"].(string)
 			betTypes := data["BetTypes"].([]interface{})
 			amounts := data["Amounts"].([]interface{})
 			betState := []*com.BetPlace{}
@@ -451,7 +452,7 @@ func (g *CockStrategy) OnMessage(roomId com.RoomId, connId com.ConnectionId, msg
 				betPlace := &com.BetPlace{Type: com.BetType(betType), Amount: com.Amount(amount)}
 				betState = append(betState, betPlace)
 			}
-			room.ProcessBets(connId, betState)
+			room.ProcessBets(connId, clientRequestId, betState)
 		} else {
 			res := (&com.BetFailResponse{}).Init(room)
 			res.FailCode = com.RES_FAIL_BET_REJECT
@@ -462,11 +463,11 @@ func (g *CockStrategy) OnMessage(roomId com.RoomId, connId com.ConnectionId, msg
 	room.OnMessage(cmd, connInfo, msg)
 }
 
-func (g *CockStrategy) GetResultString() string {
+func (g *CockStrategy) GetResultData() interface{} {
 	return fmt.Sprintf("Winner: %s", g.gameResultData.Winner)
 }
 
-func (game *CockStrategy) GetGameResult() string {
+func (game *CockStrategy) GetGameResultString() string {
 	if game.gameResultData == nil {
 		return ""
 	}

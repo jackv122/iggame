@@ -57,7 +57,7 @@ func (game *GameA) GetTotalBetTime() float64 {
 	return 1
 }
 
-func (game *GameA) GetGameResult() string {
+func (game *GameA) GetGameResultString() string {
 	return ""
 }
 
@@ -65,6 +65,6 @@ func (game *GameA) LoadTrends(gameId GameId, page uint32) []*TrendItem {
 	return game.Trends
 }
 
-func (game *GameA) GetResultString() string {
+func (game *GameA) GetResultData() interface{} {
 	return ""
 }

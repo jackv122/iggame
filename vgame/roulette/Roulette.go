@@ -71,7 +71,7 @@ func (g *Roulette) GetResultNum() int {
 	return g.ResultNum
 }
 
-func (g *Roulette) GetResultString() string {
+func (g *Roulette) GetResultData() interface{} {
 	return fmt.Sprintf("%d_%d", g.ResultNum, g.PathIds[g.PathInd])
 }
 
@@ -505,6 +505,7 @@ func (game *Roulette) OnMessage(roomId com.RoomId, connId com.ConnectionId, msg 
 	case com.CMD_SEND_BET_UPDATE:
 		if currState == com.GAME_STATE_BETTING || currState == com.GAME_STATE_CLOSE_BETTING {
 			// BetRequest
+			clientRequestId := data["ClientRequestId"].(string)
 			betTypes := data["BetTypes"].([]interface{})
 			amounts := data["Amounts"].([]interface{})
 			betState := []*com.BetPlace{}
@@ -514,7 +515,7 @@ func (game *Roulette) OnMessage(roomId com.RoomId, connId com.ConnectionId, msg 
 				betPlace := &com.BetPlace{Type: com.BetType(betType), Amount: com.Amount(amount)}
 				betState = append(betState, betPlace)
 			}
-			room.ProcessBets(connId, betState)
+			room.ProcessBets(connId, clientRequestId, betState)
 		} else {
 			res := (&com.BetFailResponse{}).Init(room)
 			res.FailCode = com.RES_FAIL_BET_REJECT
@@ -567,7 +568,7 @@ func (game *Roulette) GetPayout(betKind com.BetKind) com.Amount {
 	return game.PayoutMap[betKind]
 }
 
-func (game *Roulette) GetGameResult() string {
+func (game *Roulette) GetGameResultString() string {
 	if game.ResultNum < 0 {
 		return ""
 	}
