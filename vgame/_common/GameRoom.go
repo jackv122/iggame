@@ -19,6 +19,12 @@ type BetPlace struct {
 	Amount Amount
 }
 
+type PayoutInfo struct {
+	BetType      BetType
+	BetAmount    Amount
+	PayoutAmount Amount
+}
+
 type RoomConfig struct {
 	RoomId      RoomId                             `json:"roomId"`
 	LimitLevel  LimitLevel                         `json:"limitLevel"`
@@ -35,6 +41,7 @@ type UserBetInfo struct {
 	Mutex       sync.Mutex
 
 	ConfirmedBetState []*BetPlace
+	ConfirmedPayouts  []*PayoutInfo
 	SendingBetState   []*BetPlace
 	WaitingBetState   []*BetPlace
 }
@@ -190,15 +197,19 @@ func (room *GameRoom) NotifyReward() {
 		if !ok {
 			continue
 		}
-		payInfos := []*PayoutInfo{}
-		res := (&ClientPayoutResponse{}).Init(room, &payInfos, 0)
+		playerPayouts := []*PlayerPayout{}
+		res := (&ClientPayoutResponse{}).Init(room, &playerPayouts, 0)
 
 		betInfo, has := room.BetInfosMap[connInfo.UserId]
 		if has && betInfo.Payedout == 1 {
-			totalBet := GetTotalBet(betInfo.ConfirmedBetState)
-			payInfo := PayoutInfo{TotalBet: truncateAmount(totalBet), TotalPay: truncateAmount(betInfo.TotalPay)}
-			payInfos = append(payInfos, &payInfo)
-			res.PayoutContent.Payouts = &payInfos
+
+			payouts := []*PayoutInfo{}
+			for _, payout := range betInfo.ConfirmedPayouts {
+				payouts = append(payouts, payout)
+			}
+			playerPayout := PlayerPayout{Payouts: &payouts}
+
+			res.PayoutContent.PlayerPayouts = &[]*PlayerPayout{&playerPayout}
 			res.PayoutContent.Balance = truncateAmount(betInfo.Balance)
 		}
 
@@ -459,6 +470,20 @@ func (room *GameRoom) ResumeBetting(bettings []*BettingRecord) {
 			betInfo.Payedout = betRecord.Payedout
 			betInfo.TotalPay = betRecord.Payout
 			betInfo.DbBettingId = betRecord.BettingId
+			betInfo.ConfirmedPayouts = []*PayoutInfo{}
+			if betRecord.BetDetail != "" {
+				arr := strings.Split(betRecord.BetDetail, ",")
+				for _, s := range arr {
+					payout := PayoutInfo{}
+					arr2 := strings.Split(s, "_")
+					payout.BetType = BetType(arr2[0])
+					amt, _ := strconv.ParseFloat(arr2[1], 64)
+					payout.BetAmount = Amount(amt)
+					amt2, _ := strconv.ParseFloat(arr2[2], 64)
+					payout.PayoutAmount = Amount(amt2)
+					betInfo.ConfirmedPayouts = append(betInfo.ConfirmedPayouts, &payout)
+				}
+			}
 
 			if betRecord.BetDetail != "" {
 				arr := strings.Split(betRecord.BetDetail, ",")

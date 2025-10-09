@@ -326,6 +326,7 @@ func (g *Roulette) payoutRoom(room *com.GameRoom) bool {
 		}
 		totalPay := com.Amount(0)
 		betDetail := ""
+		confirmPayouts := []*com.PayoutInfo{}
 		for _, betPlace := range betInfo.ConfirmedBetState {
 			betPay := com.Amount(0)
 			isWin, has := g.GameData.betResultMap[string(betPlace.Type)][g.ResultNum]
@@ -333,6 +334,7 @@ func (g *Roulette) payoutRoom(room *com.GameRoom) bool {
 				betKind := g.BetKindMap[string(betPlace.Type)]
 				betPay = g.PayoutMap[betKind] * betPlace.Amount
 				totalPay += betPay
+				confirmPayouts = append(confirmPayouts, &com.PayoutInfo{BetType: betPlace.Type, BetAmount: betPlace.Amount, PayoutAmount: betPay})
 			}
 			if betDetail != "" {
 				betDetail += ","
@@ -341,6 +343,7 @@ func (g *Roulette) payoutRoom(room *com.GameRoom) bool {
 		}
 		betInfo.TotalPay = totalPay
 		betInfo.Payedout = 1
+		betInfo.ConfirmedPayouts = confirmPayouts
 
 		/* NOTE: for lamda capture -----------------------------------------
 		+ Must declare a new local scope variable for each for loop (same as capture with 'let' in javascript)

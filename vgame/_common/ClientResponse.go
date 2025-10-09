@@ -165,17 +165,26 @@ func (Content *RoomInfoContent) Init(room *GameRoom, userId UserId) *RoomInfoCon
 	Content.W = game.GetW()
 
 	betState := []*BetPlace{}
+
 	Content.PayoutContent = nil
 	betInfo, has := room.BetInfosMap[userId]
 	if has {
 		betState = betInfo.ConfirmedBetState
 		Content.PayoutContent = &PayoutContent{}
-		totalBet := GetTotalBet(betInfo.ConfirmedBetState)
-		payInfo := PayoutInfo{TotalBet: truncateAmount(totalBet), TotalPay: truncateAmount(betInfo.TotalPay)}
-		Content.PayoutContent.Payouts = &[]*PayoutInfo{&payInfo}
+
+		payouts := []*PayoutInfo{}
+		for _, payout := range betInfo.ConfirmedPayouts {
+			payouts = append(payouts, payout)
+		}
+		playerPayout := PlayerPayout{Payouts: &payouts}
+
+		Content.PayoutContent.PlayerPayouts = &[]*PlayerPayout{&playerPayout}
+
 		Content.PayoutContent.Balance = truncateAmount(betInfo.Balance)
 	}
+
 	Content.PlayerBets = [][]*BetPlace{betState}
+
 	return Content
 }
 
@@ -210,14 +219,13 @@ func (res *ClientTrendResponse) Init(room *GameRoom, Trends *[]*TrendItem) *Clie
 	return res
 }
 
-type PayoutInfo struct {
-	TotalBet Amount
-	TotalPay Amount
+type PlayerPayout struct {
+	Payouts *[]*PayoutInfo
 }
 
 type PayoutContent struct {
-	Balance Amount
-	Payouts *[]*PayoutInfo
+	Balance       Amount
+	PlayerPayouts *[]*PlayerPayout
 }
 
 type ClientPayoutResponse struct {
@@ -229,7 +237,7 @@ type ClientPayoutResponse struct {
 	PayoutContent *PayoutContent
 }
 
-func (res *ClientPayoutResponse) Init(room *GameRoom, Payouts *[]*PayoutInfo, Balance Amount) *ClientPayoutResponse {
+func (res *ClientPayoutResponse) Init(room *GameRoom, PlayerPayouts *[]*PlayerPayout, Balance Amount) *ClientPayoutResponse {
 	res.CMD = CMD_PAYOUT_SUCCESS
 	game := GetGameInterface(room.GameId, room.Server)
 	res.GameNumber = game.GetGameNumber()
@@ -238,6 +246,6 @@ func (res *ClientPayoutResponse) Init(room *GameRoom, Payouts *[]*PayoutInfo, Ba
 	res.RoundId = game.GetRoundId()
 	res.PayoutContent = &PayoutContent{}
 	res.PayoutContent.Balance = truncateAmount(Balance)
-	res.PayoutContent.Payouts = Payouts
+	res.PayoutContent.PlayerPayouts = PlayerPayouts
 	return res
 }
