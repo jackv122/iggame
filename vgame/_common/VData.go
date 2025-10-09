@@ -13,7 +13,7 @@ const ROOM_ID_NONE = "000000000"
 
 type RoundId uint32
 type SeatId uint8
-type BetKind uint8
+type BetKind string
 type Currency string
 type LimitLevel uint
 type EncryptType uint8

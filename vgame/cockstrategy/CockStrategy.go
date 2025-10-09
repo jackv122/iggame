@@ -14,6 +14,7 @@ type CockData struct {
 	ID       CockID
 	Strength int
 	Agility  int
+	Payout   com.Amount
 }
 
 type CockStrategy struct {
@@ -197,7 +198,7 @@ func (g *CockStrategy) GetBetLimit(level com.LimitLevel) map[com.Currency]map[co
 }
 
 func (g *CockStrategy) GetPayout(betKind com.BetKind) com.Amount {
-	return g.PayoutMap[betKind]
+	return g.PayoutMap[string(betKind)]
 }
 
 func (g *CockStrategy) OnEnterStarting() {
@@ -377,15 +378,19 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 		totalPay := com.Amount(0)
 		betDetail := ""
 		confirmPayouts := []*com.PayoutInfo{}
+
 		for _, betPlace := range betInfo.ConfirmedBetState {
 			betPay := com.Amount(0)
-			isWin := g.gameResultData.Winner == CockID(betPlace.Type)
+
+			isWin := g.GameData.betResultMap[betPlace.Type]
 			if isWin {
-				betKind := g.BetKindMap[string(betPlace.Type)]
-				betPay = g.PayoutMap[betKind] * betPlace.Amount
+				betPay = g.PayoutMap[string(betPlace.Type)] * betPlace.Amount
 				totalPay += betPay
-				confirmPayouts = append(confirmPayouts, &com.PayoutInfo{BetType: betPlace.Type, BetAmount: betPlace.Amount, PayoutAmount: betPay})
 			}
+
+			// apply payout also for not win bet
+			confirmPayouts = append(confirmPayouts, &com.PayoutInfo{BetType: betPlace.Type, BetAmount: betPlace.Amount, PayoutAmount: betPay})
+
 			if betDetail != "" {
 				betDetail += ","
 			}
@@ -487,5 +492,17 @@ func (g *CockStrategy) genResult() {
 		Winner:  winner,
 	}
 	time.Sleep(5 * time.Second)
+
+	// dynamic update betResultMap base on game result
+	g.GameData.betResultMap[BET_TYPE_LEFT] = false
+	g.GameData.betResultMap[BET_TYPE_RIGHT] = false
+	if winner == g.gameInitData.Cock_1.ID {
+		g.GameData.betResultMap[BET_TYPE_LEFT] = true
+	}
+	if winner == g.gameInitData.Cock_2.ID {
+		g.GameData.betResultMap[BET_TYPE_RIGHT] = true
+	}
+	// ------------------------------------------------------------
+
 	g.StateMng.NextState()
 }

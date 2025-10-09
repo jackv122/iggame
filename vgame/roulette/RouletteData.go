@@ -6,18 +6,18 @@ import (
 )
 
 const (
-	BET_Straight  = 0
-	BET_Split     = 1
-	BET_Street    = 2
-	BET_Corner    = 3
-	BET_Line      = 4
-	BET_Trio      = 5
-	BET_Basket    = 6
-	BET_Odd_Even  = 7
-	BET_Red_Black = 8
-	BET_High_Low  = 9
-	BET_Columns   = 10
-	BET_Dozens    = 11
+	BET_Straight  = "0"
+	BET_Split     = "1"
+	BET_Street    = "2"
+	BET_Corner    = "3"
+	BET_Line      = "4"
+	BET_Trio      = "5"
+	BET_Basket    = "6"
+	BET_Odd_Even  = "7"
+	BET_Red_Black = "8"
+	BET_High_Low  = "9"
+	BET_Columns   = "10"
+	BET_Dozens    = "11"
 )
 
 type RouletteData struct {
@@ -30,7 +30,7 @@ func (d *RouletteData) init(g *Roulette) *RouletteData {
 	return d
 }
 
-func (d *RouletteData) initPayoutMap(g *Roulette) *map[com.BetKind]com.Amount {
+func (d *RouletteData) initPayoutMap(g *Roulette) *map[string]com.Amount {
 	payoutMap := g.PayoutMap
 	payoutMap[BET_Straight] = 35 + 1
 	payoutMap[BET_Split] = 17 + 1

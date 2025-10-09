@@ -332,10 +332,11 @@ func (g *Roulette) payoutRoom(room *com.GameRoom) bool {
 			isWin, has := g.GameData.betResultMap[string(betPlace.Type)][g.ResultNum]
 			if has && isWin {
 				betKind := g.BetKindMap[string(betPlace.Type)]
-				betPay = g.PayoutMap[betKind] * betPlace.Amount
+				betPay = g.PayoutMap[string(betKind)] * betPlace.Amount
 				totalPay += betPay
-				confirmPayouts = append(confirmPayouts, &com.PayoutInfo{BetType: betPlace.Type, BetAmount: betPlace.Amount, PayoutAmount: betPay})
 			}
+			// apply payout also for not win bet
+			confirmPayouts = append(confirmPayouts, &com.PayoutInfo{BetType: betPlace.Type, BetAmount: betPlace.Amount, PayoutAmount: betPay})
 			if betDetail != "" {
 				betDetail += ","
 			}
@@ -568,7 +569,7 @@ func (game *Roulette) GetBetLimit(level com.LimitLevel) map[com.Currency]map[com
 }
 
 func (game *Roulette) GetPayout(betKind com.BetKind) com.Amount {
-	return game.PayoutMap[betKind]
+	return game.PayoutMap[string(betKind)]
 }
 
 func (game *Roulette) GetGameResultString() string {

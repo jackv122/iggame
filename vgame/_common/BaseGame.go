@@ -29,7 +29,8 @@ type BaseGame struct {
 	TickCount int
 
 	// Game data maps
-	PayoutMap         map[BetKind]Amount
+	// can map a BetType or BetKind to a payout ratio
+	PayoutMap         map[string]Amount
 	SmallLimitBetMap  map[Currency]map[BetKind]*BetLimit
 	MediumLimitBetMap map[Currency]map[BetKind]*BetLimit
 	BetKindMap        map[string]BetKind

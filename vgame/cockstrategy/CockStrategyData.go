@@ -6,7 +6,7 @@ import (
 
 const (
 	// bet kind
-	BET_Straight = 0
+	BET_Straight = "0"
 	GAME_VERSION = "1.0.0"
 )
 
@@ -20,8 +20,8 @@ const (
 )
 
 const (
-	BET_TYPE_LEFT  = "0"
-	BET_TYPE_RIGHT = "1"
+	BET_TYPE_LEFT  com.BetType = "0"
+	BET_TYPE_RIGHT com.BetType = "1"
 )
 
 type GameInitData struct {
@@ -36,16 +36,14 @@ type GameResultData struct {
 }
 
 type CockStrategyData struct {
+	betResultMap map[com.BetType]bool
 }
 
 func (d *CockStrategyData) init(g *CockStrategy) *CockStrategyData {
-
-	// payout
-	g.PayoutMap[com.BetKind(BET_Straight)] = 1 + 0.95
-
+	d.betResultMap = map[com.BetType]bool{}
 	// init BetKindMap
-	g.BetKindMap[BET_TYPE_LEFT] = com.BetKind(BET_Straight)
-	g.BetKindMap[BET_TYPE_RIGHT] = com.BetKind(BET_Straight)
+	g.BetKindMap[string(BET_TYPE_LEFT)] = com.BetKind(BET_Straight)
+	g.BetKindMap[string(BET_TYPE_RIGHT)] = com.BetKind(BET_Straight)
 
 	return d
 }
