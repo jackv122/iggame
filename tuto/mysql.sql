@@ -3,7 +3,6 @@
 -- Example: create daily partitions for Aug 2025
 -- CALL add_betting_partitions_daily('2025-08-01','2025-09-01');
 
-
 mysql --host=localhost --port=3306 --user=root --password=hailuava12a6 vwallet_001
 
 ALTER TABLE betting
@@ -19,6 +18,7 @@ ALTER TABLE betting
   ADD INDEX idx_user_time (userid, updatetime, id),
   ADD INDEX idx_game_time (gameid, updatetime, id);
 
+-- DATABASE: vwallet_001
 INSERT INTO betting
   (gameid, gamenumber, roomid, userid, roundid, betdetail, result, payout, payedout, h)
 VALUES
@@ -46,10 +46,6 @@ CREATE TABLE `betting` (
   KEY `idx_user_time` (`userid`,`updatetime`,`id`),
   KEY `idx_game_time` (`gameid`,`updatetime`,`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3136 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-
-
-
--- Enable partitioning by months
 
 
 --EX:
@@ -92,4 +88,17 @@ PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
 
 
 
-
+-- DATABASE: vgame
+CREATE TABLE `trend` (
+  `gamenumber` bigint NOT NULL AUTO_INCREMENT,
+  `gameid` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
+  `roundid` int NOT NULL,
+  `result` varchar(45) COLLATE utf8mb4_general_ci NOT NULL,
+  `data` tinytext COLLATE utf8mb4_general_ci,
+  `updatetime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `tx` varchar(100) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `w` varchar(45) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `h` varchar(44) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  PRIMARY KEY (`gamenumber`),
+  KEY `createtime` (`updatetime` DESC)
+) ENGINE=InnoDB AUTO_INCREMENT=10771 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
