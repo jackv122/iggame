@@ -62,6 +62,7 @@ const PROXY_CMD_CLIENT_MSG        = 3
 const PROXY_CMD_REGISTER_ROOMS  = 4
 const CMD_GET_HISTORY = "gethistory"
 const CMD_HISTORY     = "history"
+const CMD_GAME_DETAIL     = "game_detail"
 // -----------------------------------
 
 var gameLimitMap = {}
@@ -73,7 +74,8 @@ var connInd = 0;
 var tcpServer = null;
 
 // map roomIds to game server
-var gameServerConnMap = {};
+var roomIdToConnMap = {};
+var gameIdToConnMap = {};
 
 var textDecoder = new TextDecoder('utf8')
 var textEncoder = new TextEncoder('utf8')
@@ -275,8 +277,9 @@ function onGameServerMsgHdl(vs, requestId, data) {
                 for (let gameId in gameRoomIdMap) {
                     let roomIds = gameRoomIdMap[gameId]
                     for (let roomId of roomIds) {
-                        gameServerConnMap[roomId] = vs
+                        roomIdToConnMap[roomId] = vs
                     }
+                    gameIdToConnMap[gameId] = vs
                 }
                 break;
             case PROXY_CMD_BROADCAST:
@@ -308,10 +311,17 @@ function safeSend(ws, msg, roomId = ROOM_ID_NONE) {
 
 function onGameServerCloseHdl(vs, requestId, data) {
     let removeKeys = []
-    for (let i in gameServerConnMap) {
-        if (gameServerConnMap[i] == vs) removeKeys.push(i);
+    for (let i in roomIdToConnMap) {
+        if (roomIdToConnMap[i] == vs) removeKeys.push(i);
     }
-    for (let key of removeKeys) delete gameServerConnMap[key];
+    for (let key of removeKeys) delete roomIdToConnMap[key];
+
+    removeKeys = []
+    for (let i in gameIdToConnMap) {
+        if (gameIdToConnMap[i] == vs) removeKeys.push(i);
+    }
+    for (let key of removeKeys) delete gameIdToConnMap[key];
+
     vutils.removeElementFromArray(gameConnList, vs)
 }
 
@@ -439,12 +449,37 @@ function startUWS() {
                                     let res = JSON.parse(data);
                                     //console.log('res.errorCode == ' + res.ErrorCode);
                                     if (res.ErrorCode == 0) {
-                                        let message = JSON.stringify({
-                                            CMD: CMD_HISTORY,
-                                            GameId: param.GameId,
-                                            Items: res.Items
-                                        })
-                                        safeSend(ws, msg)
+                                        // send CMD_GAME_DETAIL to game server for getting game details ---
+                                        let gameNumbers = []
+                                        for (let i = 0; i < res.Items.length; i++) {
+                                            gameNumbers.push(res.Items[i].GameNumber);
+                                        }
+                                        let gameConnection = gameIdToConnMap[data.GameId];
+                                        if (gameConnection) {
+                                            let gameDetail = JSON.stringify({
+                                                CMD: CMD_GAME_DETAIL,
+                                                GameNumbers: gameNumbers
+                                            })
+                                            gameConnection.send(textEncoder.encode(JSON.stringify(gameDetail)), (vs, requestId, data)=>{
+                                                let res = JSON.parse(data);
+                                                
+                                                if (res.ErrorCode == 0) {
+                                                    //console.log('gameDetail === ' + JSON.stringify(gameDetail));
+
+                                                    let message = JSON.stringify({
+                                                        CMD: CMD_HISTORY,
+                                                        GameId: param.GameId,
+                                                        Items: res.Items,
+                                                        gameDetails: res.GameDetails
+                                                    })
+                                                    safeSend(ws, message)
+                                                }
+                                                else {
+                                                    console.log('gameDetail error ' + res.ErrorMsg);
+                                                }
+                                            }, null)
+                                        }
+                                        // ------------------------------------------------------------
                                     }
                                 }, null)
                                 break;
@@ -460,8 +495,8 @@ function startUWS() {
                             ConnId: connId,
                             Data: message // TODO: check if need to encode Base64
                         }
-                        if (gameServerConnMap[roomId] !== undefined) {
-                            let vs = gameServerConnMap[roomId]
+                        if (roomIdToConnMap[roomId] !== undefined) {
+                            let vs = roomIdToConnMap[roomId]
                             vs.send(textEncoder.encode(JSON.stringify(param)), null, null)
                         }
                     }

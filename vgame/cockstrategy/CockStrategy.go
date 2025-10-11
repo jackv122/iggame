@@ -497,7 +497,7 @@ func (game *CockStrategy) GetGameResultString() string {
 	if game.gameResultData == nil {
 		return ""
 	}
-	return fmt.Sprintf("Winner: %s", game.gameResultData.Winner)
+	return string(game.gameResultData.Winner)
 }
 
 func (g *CockStrategy) genResult() {

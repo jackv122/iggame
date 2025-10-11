@@ -247,6 +247,7 @@ func initGameFactory() {
 		var game com.GameInterface = nil
 		switch gameId {
 		case com.IDRoulette:
+		case com.IDRoulette_02: // another instance of roulette game. We can have many game instances to handle different room configs
 			game = (*roul.Roulette)(gameServer.GetGamePointer(gameId))
 		case com.IDGameA:
 			game = (*com.GameA)(gameServer.GetGamePointer(gameId))
