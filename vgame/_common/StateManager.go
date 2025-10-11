@@ -1,11 +1,14 @@
 package com
 
+import "time"
+
 type StateManager struct {
-	States     []GameState
-	StateDurs  []float64
-	StateTime  float64
-	CurrState  GameState
-	StateIndex int
+	States         []GameState
+	StateDurs      []float64
+	StateTime      float64
+	CurrState      GameState
+	StateStartTime int64
+	StateIndex     int
 
 	onEnterState func(state GameState)
 	onExitState  func(state GameState)
@@ -56,7 +59,7 @@ func (g *StateManager) NextState() {
 	}
 	g.CurrState = g.States[g.StateIndex]
 	g.StateTime = 0
-
+	g.StateStartTime = time.Now().UnixMilli()
 	g.onEnterState(g.CurrState)
 }
 

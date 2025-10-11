@@ -13,10 +13,10 @@ const (
 type CockID com.BetType
 
 const (
-	COCK_001 CockID = "001"
-	COCK_002 CockID = "002"
-	COCK_003 CockID = "003"
-	COCK_004 CockID = "004"
+	COCK_001 CockID = "c01"
+	COCK_002 CockID = "c02"
+	COCK_003 CockID = "c03"
+	COCK_004 CockID = "c04"
 )
 
 const (

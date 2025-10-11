@@ -437,7 +437,7 @@ func (g *Roulette) genResult() {
 			//g.ResultNum = com.VUtils.GetRandInt(37)
 			g.ResultNum = int(rand * float64(36+0.9999))
 			resultStr := strconv.Itoa(g.ResultNum)
-			err = g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, txResult.Txh, txResult.W)
+			err = g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, "", txResult.Txh, txResult.W)
 			if err != nil {
 				com.VUtils.PrintError(err)
 				g.Server.Maintenance()

@@ -16,6 +16,7 @@ type GameInterface interface {
 
 	GetCurState() GameState
 	GetRemainStateTime() float64
+	GetStateStartTime() int64
 	GetTotalBetTime() float64
 
 	SaveGameState()

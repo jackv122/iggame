@@ -1,5 +1,7 @@
 package com
 
+import "time"
+
 // BaseGameResponse -----------
 
 type ClientRoomStatsResponse struct {
@@ -141,6 +143,8 @@ type RoomInfoContent struct {
 	RemainStateTime float64
 	TotalBetTime    float64
 	PlayerBets      [][]*BetPlace
+	StateStartTime  int64
+	ServerTime      int64
 
 	GameInitData interface{}
 
@@ -160,6 +164,8 @@ func (Content *RoomInfoContent) Init(room *GameRoom, userId UserId) *RoomInfoCon
 	Content.SeatId = 0
 	Content.RemainStateTime = game.GetRemainStateTime()
 	Content.TotalBetTime = game.GetTotalBetTime()
+	Content.StateStartTime = game.GetStateStartTime()
+	Content.ServerTime = time.Now().UnixMilli()
 	Content.Result = game.GetResultData()
 	Content.Txh = game.GetTxh()
 	Content.W = game.GetW()

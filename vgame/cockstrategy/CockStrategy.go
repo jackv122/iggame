@@ -20,16 +20,17 @@ type CockData struct {
 type CockStrategy struct {
 	com.BaseGame
 	// payout
-	GameData       *CockStrategyData
-	gameInitData   *GameInitData
-	gameResultData *GameResultData
+	GameData         *CockStrategyData
+	gameInitData     *GameInitData
+	gameResultData   *GameResultData
+	betTypeToCockMap map[com.BetType]CockID
 }
 
 // work as constructor
 func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 	g.InitBase(server, com.IDCockStrategy, "CockStrategy")
 	gameStates := []com.GameState{com.GAME_STATE_STARTING, com.GAME_STATE_BETTING, com.GAME_STATE_CLOSE_BETTING, com.GAME_STATE_GEN_RESULT, com.GAME_STATE_RESULT, com.GAME_STATE_PAYOUT}
-	stateTimes := []float64{1, 30, 3, 0, 10, 8.0} // 0 mean wait forever
+	stateTimes := []float64{1, 30, 3, 0, 0, 8.0} // 0 mean wait forever
 	g.StateMng = (&com.StateManager{}).Init(gameStates, stateTimes, g.onEnterState, g.onExitState)
 	g.GameData = (&CockStrategyData{}).init(g)
 	g.gameResultData = nil
@@ -233,14 +234,29 @@ func (g *CockStrategy) OnEnterStarting() {
 			ID:       COCK_001,
 			Strength: 85,
 			Agility:  70,
+			Payout:   2.15,
 		},
 		Cock_2: &CockData{
 			Name:     "Lightning",
 			ID:       COCK_002,
 			Strength: 75,
 			Agility:  90,
+			Payout:   1.82,
 		},
 	}
+
+	betTypeToCockMap := map[com.BetType]CockID{
+		BET_TYPE_LEFT:  g.gameInitData.Cock_1.ID,
+		BET_TYPE_RIGHT: g.gameInitData.Cock_2.ID,
+	}
+
+	g.betTypeToCockMap = betTypeToCockMap
+
+	g.PayoutMap = map[string]com.Amount{
+		string(BET_TYPE_LEFT):  g.gameInitData.Cock_1.Payout,
+		string(BET_TYPE_RIGHT): g.gameInitData.Cock_2.Payout,
+	}
+
 	gameDataStr, err := json.Marshal(&g.gameInitData)
 	if err != nil {
 		com.VUtils.PrintError(err)
@@ -316,6 +332,8 @@ func (g *CockStrategy) OnEnterGenResult() {
 
 func (g *CockStrategy) OnEnterResult() {
 	fmt.Println("CockStrategy entering RESULT state")
+	// waiting for the battle to be finished
+	time.Sleep(5 * time.Second)
 	if g.gameResultData == nil {
 		msg := fmt.Sprintf("game %s has no result when payout", g.GameId)
 		com.VUtils.PrintError(errors.New(msg))
@@ -483,26 +501,43 @@ func (game *CockStrategy) GetGameResultString() string {
 }
 
 func (g *CockStrategy) genResult() {
+
+	betTypes := []com.BetType{
+		BET_TYPE_LEFT,
+		BET_TYPE_RIGHT}
+
 	winnerIndex := rand.Intn(2) // 0, 1
-	cockIds := []CockID{g.gameInitData.Cock_1.ID, g.gameInitData.Cock_2.ID}
-	winner := cockIds[winnerIndex]
+	winner := g.betTypeToCockMap[betTypes[winnerIndex]]
 
 	g.gameResultData = &GameResultData{
 		Version: GAME_VERSION,
 		Winner:  winner,
 	}
-	time.Sleep(5 * time.Second)
 
 	// dynamic update betResultMap base on game result
-	g.GameData.betResultMap[BET_TYPE_LEFT] = false
-	g.GameData.betResultMap[BET_TYPE_RIGHT] = false
-	if winner == g.gameInitData.Cock_1.ID {
-		g.GameData.betResultMap[BET_TYPE_LEFT] = true
-	}
-	if winner == g.gameInitData.Cock_2.ID {
-		g.GameData.betResultMap[BET_TYPE_RIGHT] = true
+	for _, betType := range betTypes {
+		if winner == g.betTypeToCockMap[betType] {
+			g.GameData.betResultMap[betType] = true
+		} else {
+			g.GameData.betResultMap[betType] = false
+		}
 	}
 	// ------------------------------------------------------------
+	dataStr, _ := json.Marshal(g.gameInitData)
 
+	resultStr := string(winner)
+	err := g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, string(dataStr), "", "")
+	if err != nil {
+		com.VUtils.PrintError(err)
+		g.Server.Maintenance()
+		return
+	}
+	g.StateMng.NextState()
+	// save new trend item
+	trendItem := com.TrendItem{GameNumber: g.GameNumber, RoundId: g.RoundId, Result: resultStr, Data: string(dataStr), Txh: "", W: ""}
+	g.Trends = append([]*com.TrendItem{&trendItem}, g.Trends...)
+	if len(g.Trends) > com.TREND_PAGE_SIZE {
+		g.Trends = g.Trends[:com.TREND_PAGE_SIZE]
+	}
 	g.StateMng.NextState()
 }

@@ -598,16 +598,16 @@ func (s *GameServer) GetGameConf(GameId GameId) *GameConfig {
 	return GameServerConfig.GameConfigMap[GameId]
 }
 
-func (s *GameServer) SaveGameResult(gameNumber GameNumber, GameId GameId, roundId RoundId, currState GameState, stateTime float64, resultStr string, txh string, w string) error {
+func (s *GameServer) SaveGameResult(gameNumber GameNumber, GameId GameId, roundId RoundId, currState GameState, stateTime float64, resultStr string, dataStr string, txh string, w string) error {
 	tx, err := s.DB.Begin()
 	if err != nil {
 		VUtils.PrintError(err)
 		return err
 	}
 
-	str := fmt.Sprintf("%d_%s_%d_%d_%s_%s_%s", gameNumber, GameId, roundId, currState, resultStr, txh, w)
+	str := fmt.Sprintf("%d_%s_%d_%d_%s_%s_%s", gameNumber, GameId, roundId, currState, resultStr, dataStr, txh, w)
 	hash := VUtils.HashString(str)
-	_, err2 := tx.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, tx=?, w=?, h=? WHERE gamenumber=?", currState, stateTime, resultStr, txh, w, hash, gameNumber)
+	_, err2 := tx.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, data=?, tx=?, w=?, h=? WHERE gamenumber=?", currState, stateTime, resultStr, dataStr, txh, w, hash, gameNumber)
 	if err2 != nil {
 		tx.Rollback()
 		VUtils.PrintError(err2)
@@ -616,10 +616,10 @@ func (s *GameServer) SaveGameResult(gameNumber GameNumber, GameId GameId, roundI
 
 	}
 
-	str2 := fmt.Sprintf("%d_%s_%d_%s_%s_%s", gameNumber, GameId, roundId, resultStr, txh, w)
+	str2 := fmt.Sprintf("%d_%s_%d_%s_%s_%s_%s", gameNumber, GameId, roundId, resultStr, dataStr, txh, w)
 	h := VUtils.HashString(str2)
 
-	_, err3 := tx.Exec("INSERT INTO trend(gamenumber, gameid, roundid, result, tx, w, h) VALUES(?,?,?,?,?,?,?)", gameNumber, GameId, roundId, resultStr, txh, w, h)
+	_, err3 := tx.Exec("INSERT INTO trend(gamenumber, gameid, roundid, result, data, tx, w, h) VALUES(?,?,?,?,?,?,?,?)", gameNumber, GameId, roundId, resultStr, dataStr, txh, w, h)
 
 	if err3 != nil {
 		tx.Rollback()
@@ -639,7 +639,7 @@ func (s *GameServer) SaveGameResult(gameNumber GameNumber, GameId GameId, roundI
 func (s *GameServer) LoadTrends(GameId GameId, page uint32) []*TrendItem {
 	startRow := page * uint32(TREND_PAGE_SIZE)
 	endRow := (page + 1) * uint32(TREND_PAGE_SIZE)
-	query := fmt.Sprintf("SELECT gamenumber, roundid, result, tx, w FROM trend WHERE gameid='%s' AND result>'' ORDER BY updatetime DESC LIMIT %d, %d", GameId, startRow, endRow)
+	query := fmt.Sprintf("SELECT gamenumber, roundid, result, data, tx, w FROM trend WHERE gameid='%s' AND result>'' ORDER BY updatetime DESC LIMIT %d, %d", GameId, startRow, endRow)
 	//fmt.Println("query == ", query)
 	rows, err := s.DB.Query(query)
 
@@ -651,7 +651,7 @@ func (s *GameServer) LoadTrends(GameId GameId, page uint32) []*TrendItem {
 	trends := []*TrendItem{}
 	for rows.Next() {
 		trend := TrendItem{}
-		err := rows.Scan(&trend.GameNumber, &trend.RoundId, &trend.Result, &trend.Txh, &trend.W)
+		err := rows.Scan(&trend.GameNumber, &trend.RoundId, &trend.Result, &trend.Data, &trend.Txh, &trend.W)
 		if err != nil {
 			VUtils.PrintError(err)
 			s.Maintenance()

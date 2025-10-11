@@ -553,7 +553,8 @@ func (room *GameRoom) doBetting(clientRequestId string, connInfo *ConnectionInfo
 
 		betInfo.Mutex.Unlock()
 
-		room.doBetting(connInfo, betInfo)
+		// continue to check waitingBetState for sending saveBetting() again. The waitingBetState maybe changed in time of saveBetting process
+		room.doBetting(clientRequestId, connInfo, betInfo)
 
 	})
 }

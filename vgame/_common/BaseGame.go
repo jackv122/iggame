@@ -51,7 +51,7 @@ func (g *BaseGame) InitBase(server *GameServer, gameId GameId, name string) {
 	g.W = ""
 
 	// Initialize game data maps
-	g.PayoutMap = make(map[BetKind]Amount)
+	g.PayoutMap = make(map[string]Amount)
 	g.SmallLimitBetMap = make(map[Currency]map[BetKind]*BetLimit)
 	g.MediumLimitBetMap = make(map[Currency]map[BetKind]*BetLimit)
 	g.BetKindMap = make(map[string]BetKind)
@@ -104,6 +104,10 @@ func (g *BaseGame) GetW() string {
 
 func (g *BaseGame) GetRemainStateTime() float64 {
 	return g.StateMng.StateDurs[g.StateMng.CurrState] - g.StateMng.StateTime
+}
+
+func (g *BaseGame) GetStateStartTime() int64 {
+	return g.StateMng.StateStartTime
 }
 
 func (g *BaseGame) GetTotalBetTime() float64 {
@@ -209,7 +213,7 @@ func (g *BaseGame) GetBetLimit(level LimitLevel) map[Currency]map[BetKind]*BetLi
 }
 
 func (g *BaseGame) GetPayout(betKind BetKind) Amount {
-	return g.PayoutMap[betKind]
+	return g.PayoutMap[string(betKind)]
 }
 
 // loadLimitMapsFromJSON loads limit maps from JSON configuration file
@@ -292,15 +296,5 @@ func (g *BaseGame) loadLimitMapsFromJSON() {
 
 // loadDefaultLimitMaps loads default limit maps when JSON config is not available
 func (g *BaseGame) loadDefaultLimitMaps() {
-	// Default small limits
-	g.SmallLimitBetMap[Currency("USDC")] = map[BetKind]*BetLimit{
-		BetKind(0): {Min: 0.1, Max: 3}, // BET_Straight
-	}
-
-	// Default medium limits
-	g.MediumLimitBetMap[Currency("USDC")] = map[BetKind]*BetLimit{
-		BetKind(0): {Min: 1, Max: 30}, // BET_Straight
-	}
-
-	fmt.Printf("Using default limit maps for %s\n", g.GameId)
+	panic("load Limit Maps failed")
 }

@@ -23,6 +23,7 @@ type TrendItem struct {
 	GameNumber GameNumber
 	RoundId    RoundId
 	Result     string
+	Data       string
 	Txh        string
 	W          string
 }
