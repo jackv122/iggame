@@ -510,14 +510,18 @@ func (g *CockStrategy) genResult() {
 	winner := g.betTypeToCockMap[betTypes[winnerIndex]]
 
 	g.gameResultData = &GameResultData{
-		Version: GAME_VERSION,
-		Winner:  winner,
+		Version:        GAME_VERSION,
+		Winner:         winner,
+		HighlightGates: []com.BetType{},
 	}
 
 	// dynamic update betResultMap base on game result
 	for _, betType := range betTypes {
 		if winner == g.betTypeToCockMap[betType] {
 			g.GameData.betResultMap[betType] = true
+
+			// marks winner bet type as highlight gate
+			g.gameResultData.HighlightGates = append(g.gameResultData.HighlightGates, betType)
 		} else {
 			g.GameData.betResultMap[betType] = false
 		}

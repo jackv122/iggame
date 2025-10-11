@@ -31,8 +31,9 @@ type GameInitData struct {
 }
 
 type GameResultData struct {
-	Version string
-	Winner  CockID
+	Version        string
+	Winner         CockID
+	HighlightGates []com.BetType
 }
 
 type CockStrategyData struct {
