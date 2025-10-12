@@ -149,7 +149,7 @@ func (g *CockStrategy) SaveGameState() {
 	hash := com.VUtils.HashString(str)
 	_, err2 := g.Server.DB.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, data=?, tx=?, w=?, h=? WHERE gamenumber=?", g.StateMng.CurrState, g.StateMng.StateTime, resultStr, gameDataStr, g.Txh, g.W, hash, g.GameNumber)
 	if err2 != nil {
-		com.VUtils.PrintError(err)
+		com.VUtils.PrintError(err2)
 		g.Server.Maintenance()
 		return
 	}
@@ -490,7 +490,7 @@ func (g *CockStrategy) OnMessage(roomId com.RoomId, connId com.ConnectionId, msg
 }
 
 func (g *CockStrategy) GetResultData() interface{} {
-	return fmt.Sprintf("Winner: %s", g.gameResultData.Winner)
+	return g.gameResultData
 }
 
 func (game *CockStrategy) GetGameResultString() string {
@@ -507,6 +507,7 @@ func (g *CockStrategy) genResult() {
 		BET_TYPE_RIGHT}
 
 	winnerIndex := rand.Intn(2) // 0, 1
+	winnerIndex = 0
 	winner := g.betTypeToCockMap[betTypes[winnerIndex]]
 
 	g.gameResultData = &GameResultData{

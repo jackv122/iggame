@@ -195,9 +195,6 @@ func loadVSettingsFromJSON() {
 		if val, exists := game["maxRound"]; exists {
 			com.MAX_ROUND = int(val.(float64))
 		}
-		if val, exists := game["roomIdLength"]; exists {
-			com.ROOM_ID_LENGTH = int(val.(float64))
-		}
 		if val, exists := game["operatorIdLength"]; exists {
 			com.OPERATOR_ID_LENGTH = int(val.(float64))
 		}

@@ -149,15 +149,15 @@ func RemoveElementFromArray[T comparable](arr []T, v T) []T {
 func truncateAmount(amount Amount) Amount {
 	// truncate
 	amountVal := float64(amount)
-	amountVal = float64(uint64(amountVal*10000)) / 10000
+	amountVal = float64(uint64(amountVal*100)) / 100.0
 	return Amount(amountVal)
 }
 
 func FormatAmount(amount Amount) string {
 	// truncate
 	amountVal := float64(amount)
-	amountVal = float64(uint64(amountVal*10000)) / 10000
-	str := fmt.Sprintf("%.4f", amountVal)
+	amountVal = float64(uint64(amountVal*100)) / 100.0
+	str := fmt.Sprintf("%.2f", amountVal)
 	return str
 }
 

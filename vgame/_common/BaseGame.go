@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 )
 
 // BaseGame contains common properties and methods shared by all games
@@ -249,14 +248,12 @@ func (g *BaseGame) loadLimitMapsFromJSON() {
 			if currencyMap, ok := currencyData.(map[string]interface{}); ok {
 				betMap := map[BetKind]*BetLimit{}
 				for betKindStr, limitData := range currencyMap {
-					if betKindInt, err := strconv.Atoi(betKindStr); err == nil {
-						if limitMap, ok := limitData.(map[string]interface{}); ok {
-							if minVal, ok := limitMap["min"].(float64); ok {
-								if maxVal, ok := limitMap["max"].(float64); ok {
-									betMap[BetKind(betKindInt)] = &BetLimit{
-										Min: Amount(minVal),
-										Max: Amount(maxVal),
-									}
+					if limitMap, ok := limitData.(map[string]interface{}); ok {
+						if minVal, ok := limitMap["min"].(float64); ok {
+							if maxVal, ok := limitMap["max"].(float64); ok {
+								betMap[BetKind(betKindStr)] = &BetLimit{
+									Min: Amount(minVal),
+									Max: Amount(maxVal),
 								}
 							}
 						}
@@ -273,14 +270,12 @@ func (g *BaseGame) loadLimitMapsFromJSON() {
 			if currencyMap, ok := currencyData.(map[string]interface{}); ok {
 				betMap := map[BetKind]*BetLimit{}
 				for betKindStr, limitData := range currencyMap {
-					if betKindInt, err := strconv.Atoi(betKindStr); err == nil {
-						if limitMap, ok := limitData.(map[string]interface{}); ok {
-							if minVal, ok := limitMap["min"].(float64); ok {
-								if maxVal, ok := limitMap["max"].(float64); ok {
-									betMap[BetKind(betKindInt)] = &BetLimit{
-										Min: Amount(minVal),
-										Max: Amount(maxVal),
-									}
+					if limitMap, ok := limitData.(map[string]interface{}); ok {
+						if minVal, ok := limitMap["min"].(float64); ok {
+							if maxVal, ok := limitMap["max"].(float64); ok {
+								betMap[BetKind(betKindStr)] = &BetLimit{
+									Min: Amount(minVal),
+									Max: Amount(maxVal),
 								}
 							}
 						}

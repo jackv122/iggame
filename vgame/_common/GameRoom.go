@@ -482,17 +482,10 @@ func (room *GameRoom) ResumeBetting(bettings []*BettingRecord) {
 					amt2, _ := strconv.ParseFloat(arr2[2], 64)
 					payout.PayoutAmount = Amount(amt2)
 					betInfo.ConfirmedPayouts = append(betInfo.ConfirmedPayouts, &payout)
-				}
-			}
 
-			if betRecord.BetDetail != "" {
-				arr := strings.Split(betRecord.BetDetail, ",")
-				for _, s := range arr {
 					betPlace := BetPlace{}
-					arr2 := strings.Split(s, "_")
-					betPlace.Type = BetType(arr2[0])
-					amt, _ := strconv.ParseFloat(arr2[1], 64)
 					betPlace.Amount = Amount(amt)
+					betPlace.Type = BetType(arr2[0])
 					betInfo.ConfirmedBetState = append(betInfo.ConfirmedBetState, &betPlace)
 				}
 			}

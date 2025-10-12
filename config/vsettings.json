@@ -32,7 +32,6 @@
 		"batchMessage": false,
 		"maxAccount": 9999999,
 		"maxRound": 9999,
-		"roomIdLength": 6,
 		"operatorIdLength": 3,
 		"trendPageSize": 70,
 		"hisPageSize": 20,

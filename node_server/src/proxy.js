@@ -31,7 +31,6 @@ const WCMD_REGISTER_CONN = 0;
 const GAME_ENCRYPT      = 0
 const PROXY_ENCRYPT     = 1
 // ------------------------------
-const ROOMID_LENGTH = 6
 const WCMD_GET_BALANCE = 2
 const WCMD_HISTORY = 12
 // global vals
@@ -399,8 +398,8 @@ function startUWS() {
             try {
                 let message = decodeClientMessage(bytes)
                 //console.log('message === ' + message);
-                let roomId = message.substring(0, ROOMID_LENGTH);
-                let dataStr = message.substring(ROOMID_LENGTH);
+                let roomId = message.substring(0, ROOM_ID_NONE.length);
+                let dataStr = message.substring(ROOM_ID_NONE.length);
                 //console.log('roomId ' + roomId)
                 //console.log('dataStr ' + dataStr)
                 
@@ -412,12 +411,13 @@ function startUWS() {
                     let connId = ws.connId;
                     let operatorId = ws.operatorId;
                     let userId = ws.userId;
-
+                    console.log('roomId ' + roomId);
                     if (roomId == ROOM_ID_NONE) { // no room id, specific CMD for proxy process only
                         let data = JSON.parse(dataStr)
                         // check if the messae is authenticate  
                         switch (data.CMD) {
                             case CMD_JOIN_GAME:
+                                console.log('CMD_JOIN_GAME');
                                 gameId = data.GameId
                                 let limits = [];
                                 
@@ -482,6 +482,7 @@ function startUWS() {
                             ConnId: connId,
                             Data: message // TODO: check if need to encode Base64
                         }
+                        console.log(JSON.stringify(roomIdToConnMap));
                         if (roomIdToConnMap[roomId] !== undefined) {
                             let vs = roomIdToConnMap[roomId]
                             vs.send(textEncoder.encode(JSON.stringify(param)), null, null)

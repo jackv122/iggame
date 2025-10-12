@@ -17,6 +17,7 @@ type VSettings struct {
 func (setting *VSettings) init() *VSettings {
 	setting.OPERATORS = map[OperatorID]*OperatorInfo{}
 	setting.OPERATORS["001"] = &OperatorInfo{ID: "001", Name: "IGGame"}
+	ROOM_ID_LENGTH = len(ROOM_ID_NONE)
 	return setting
 }
 

@@ -179,9 +179,8 @@ func (Content *RoomInfoContent) Init(room *GameRoom, userId UserId) *RoomInfoCon
 		Content.PayoutContent = &PayoutContent{}
 
 		payouts := []*PayoutInfo{}
-		for _, payout := range betInfo.ConfirmedPayouts {
-			payouts = append(payouts, payout)
-		}
+		// slice array
+		payouts = append(payouts, betInfo.ConfirmedPayouts...)
 		playerPayout := PlayerPayout{Payouts: &payouts}
 
 		Content.PayoutContent.PlayerPayouts = &[]*PlayerPayout{&playerPayout}
