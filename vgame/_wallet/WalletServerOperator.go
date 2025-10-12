@@ -780,7 +780,9 @@ func (s *WalletServerOperator) loadHistoryTcp(vs *com.VSocket, requestId uint64,
 func (s *WalletServerOperator) loadHistory(gameId com.GameId, userId com.UserId, page uint32) ([]*com.HistoryRecord, []*com.TrendItem) {
 	startRow := page * uint32(com.HIS_PAGE_SIZE)
 	endRow := (page + 1) * uint32(com.HIS_PAGE_SIZE)
-	query := "SELECT gamenumber, roundid, betdetail, payout, updatetime FROM betting WHERE gameid=? AND userid=? AND payedout=1 ORDER BY updatetime DESC LIMIT ?, ?"
+	// getting the last 1 month data
+	// TODO: time range should be passing as params
+	query := "SELECT gamenumber, roundid, betdetail, payout, updatetime FROM betting WHERE gameid=? AND userid=? AND payedout=1 AND updatetime >= DATE_SUB(NOW(), INTERVAL 1 MONTH) ORDER BY updatetime DESC LIMIT ?, ?"
 	rows, err := s.db.Query(query, gameId, userId, startRow, endRow)
 
 	if err != nil {
