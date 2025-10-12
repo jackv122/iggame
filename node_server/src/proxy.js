@@ -449,37 +449,24 @@ function startUWS() {
                                     let res = JSON.parse(data);
                                     //console.log('res.errorCode == ' + res.ErrorCode);
                                     if (res.ErrorCode == 0) {
-                                        // send CMD_GAME_DETAIL to game server for getting game details ---
-                                        let gameNumbers = []
-                                        for (let i = 0; i < res.Items.length; i++) {
-                                            gameNumbers.push(res.Items[i].GameNumber);
-                                        }
-                                        let gameConnection = gameIdToConnMap[data.GameId];
-                                        if (gameConnection) {
-                                            let gameDetail = JSON.stringify({
-                                                CMD: CMD_GAME_DETAIL,
-                                                GameNumbers: gameNumbers
-                                            })
-                                            gameConnection.send(textEncoder.encode(JSON.stringify(gameDetail)), (vs, requestId, data)=>{
-                                                let res = JSON.parse(data);
-                                                
-                                                if (res.ErrorCode == 0) {
-                                                    //console.log('gameDetail === ' + JSON.stringify(gameDetail));
-
-                                                    let message = JSON.stringify({
-                                                        CMD: CMD_HISTORY,
-                                                        GameId: param.GameId,
-                                                        Items: res.Items,
-                                                        gameDetails: res.GameDetails
-                                                    })
-                                                    safeSend(ws, message)
-                                                }
-                                                else {
-                                                    console.log('gameDetail error ' + res.ErrorMsg);
-                                                }
-                                            }, null)
-                                        }
-                                        // ------------------------------------------------------------
+                                        let message = JSON.stringify({
+                                            CMD: CMD_HISTORY,
+                                            ErrorCode: 0,
+                                            GameId: param.GameId,
+                                            Items: res.Items,
+                                            gameDetails: res.GameDetails
+                                        })
+                                        safeSend(ws, message)
+                                    }
+                                    else {
+                                        let message = JSON.stringify({
+                                            CMD: CMD_HISTORY,
+                                            ErrorCode: res.ErrorCode,
+                                            GameId: param.GameId,
+                                            Items: [],
+                                            gameDetails: []
+                                        })
+                                        safeSend(ws, message)
                                     }
                                 }, null)
                                 break;

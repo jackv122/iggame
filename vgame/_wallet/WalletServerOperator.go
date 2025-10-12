@@ -21,6 +21,7 @@ type WalletServerOperator struct {
 	bettingMap      map[com.BettingId]*com.BettingRecord
 	bettingMapMutex sync.Mutex
 	db              *sql.DB
+	gameDb          *sql.DB
 	createAccMutex  sync.Mutex
 	isMaintenance   bool
 }
@@ -39,14 +40,22 @@ func (s *WalletServerOperator) Start(operatorId com.OperatorID) {
 	schemaName := com.WALLET_SCHEMA + "_" + string(operatorId)
 	connStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true", com.WALLET_MYSQL_USER, com.WALLET_MYSQL_KEY, com.WALLET_MYSQL_HOST, schemaName)
 	fmt.Println("Wallet start schemaName ", schemaName)
-	db, err := sql.Open("mysql", connStr)
-	s.db = db
 
+	db, err := sql.Open("mysql", connStr)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	s.db = db
+	fmt.Println("connect wallet db success")
 
+	connStr = fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true", com.GAME_MYSQL_USER, com.GAME_MYSQL_KEY, com.GAME_MYSQL_HOST, com.GAME_SCHEMA)
+	s.gameDb, err = sql.Open("mysql", connStr)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("connect game db success")
 	var version string
 
 	err2 := db.QueryRow("SELECT VERSION()").Scan(&version)
@@ -135,7 +144,7 @@ func (s *WalletServerOperator) LoadDB() bool {
 		}
 		s.userMap[userWallet.UserId] = userWallet
 	}
-	fmt.Println("load DB success")
+	fmt.Println("load user DB success")
 	return true
 }
 
@@ -750,7 +759,7 @@ func (s *WalletServerOperator) Stop() {
 }
 
 func (s *WalletServerOperator) loadHistoryTcp(vs *com.VSocket, requestId uint64, body *[]byte) {
-	response := &com.HistoryResponse{}
+	response := (&com.HistoryResponse{}).Init()
 	defer func() {
 		res, err := json.Marshal(response)
 		if err != nil {
@@ -765,20 +774,23 @@ func (s *WalletServerOperator) loadHistoryTcp(vs *com.VSocket, requestId uint64,
 		com.VUtils.PrintError(err)
 		return
 	}
-	response.Items = s.loadHistory(param.GameId, param.UserId, param.PageInd)
+	response.Items, response.GameDetails = s.loadHistory(param.GameId, param.UserId, param.PageInd)
 }
 
-func (s *WalletServerOperator) loadHistory(gameId com.GameId, userId com.UserId, page uint32) []*com.HistoryRecord {
+func (s *WalletServerOperator) loadHistory(gameId com.GameId, userId com.UserId, page uint32) ([]*com.HistoryRecord, []*com.TrendItem) {
 	startRow := page * uint32(com.HIS_PAGE_SIZE)
 	endRow := (page + 1) * uint32(com.HIS_PAGE_SIZE)
-	query := "SELECT gamenumber, roundid, betdetail, result, payout, updatetime FROM betting WHERE gameid=? AND userid=? AND payedout=1 ORDER BY updatetime DESC LIMIT ?, ?"
+	query := "SELECT gamenumber, roundid, betdetail, payout, updatetime FROM betting WHERE gameid=? AND userid=? AND payedout=1 ORDER BY updatetime DESC LIMIT ?, ?"
 	rows, err := s.db.Query(query, gameId, userId, startRow, endRow)
+
 	if err != nil {
 		com.VUtils.PrintError(err)
-		return nil
+		return nil, nil
 	}
 	defer rows.Close()
+
 	items := []*com.HistoryRecord{}
+	gameNumbers := []com.GameNumber{}
 	for rows.Next() {
 		bet := com.HistoryRecord{}
 		time := time.Time{}
@@ -786,11 +798,35 @@ func (s *WalletServerOperator) loadHistory(gameId com.GameId, userId com.UserId,
 		if err != nil {
 			com.VUtils.PrintError(err)
 			s.maintenance()
-			return nil
+			return nil, nil
 		}
 		//fmt.Println(time)
 		bet.Time = time.UnixMilli()
 		items = append(items, &bet)
+		gameNumbers = append(gameNumbers, bet.GameNumber)
 	}
-	return items
+
+	query = "SELECT gamenumber, roundid, result, data, tx, w FROM trend WHERE gameid=? AND gamenumber IN (?)"
+	var rows2 *sql.Rows = nil
+	rows2, err = s.gameDb.Query(query, gameId, gameNumbers)
+
+	if err != nil {
+		com.VUtils.PrintError(err)
+		return nil, nil
+	}
+	defer rows2.Close()
+
+	trends := []*com.TrendItem{}
+
+	for rows2.Next() {
+		trend := com.TrendItem{}
+		err := rows2.Scan(&trend.GameNumber, &trend.RoundId, &trend.Result, &trend.Data, &trend.Txh, &trend.W)
+		if err != nil {
+			com.VUtils.PrintError(err)
+			return nil, nil
+		}
+		trends = append(trends, &trend)
+	}
+
+	return items, trends
 }

@@ -639,9 +639,9 @@ func (s *GameServer) SaveGameResult(gameNumber GameNumber, GameId GameId, roundI
 func (s *GameServer) LoadTrends(GameId GameId, page uint32) []*TrendItem {
 	startRow := page * uint32(TREND_PAGE_SIZE)
 	endRow := (page + 1) * uint32(TREND_PAGE_SIZE)
-	query := fmt.Sprintf("SELECT gamenumber, roundid, result, data, tx, w FROM trend WHERE gameid='%s' AND result>'' ORDER BY updatetime DESC LIMIT %d, %d", GameId, startRow, endRow)
+	query := "SELECT gamenumber, roundid, result, data, tx, w FROM trend WHERE gameid=? AND result>'' ORDER BY updatetime DESC LIMIT ?, ?"
 	//fmt.Println("query == ", query)
-	rows, err := s.DB.Query(query)
+	rows, err := s.DB.Query(query, GameId, startRow, endRow)
 
 	if err != nil {
 		VUtils.PrintError(err)
