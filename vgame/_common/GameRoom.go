@@ -210,7 +210,7 @@ func (room *GameRoom) NotifyReward() {
 			playerPayout := PlayerPayout{Payouts: &payouts}
 
 			res.PayoutContent.PlayerPayouts = &[]*PlayerPayout{&playerPayout}
-			res.PayoutContent.Balance = truncateAmount(betInfo.Balance)
+			res.PayoutContent.Balance = TruncateAmount(betInfo.Balance)
 		}
 
 		room.sendMessage(connId, res)
@@ -273,7 +273,7 @@ func (room *GameRoom) NotifyEndBetting() {
 		if has {
 			res := (&EndBetResponse{}).Init(room)
 			res.BetState = betInfo.ConfirmedBetState
-			res.Balance = truncateAmount(betInfo.Balance)
+			res.Balance = TruncateAmount(betInfo.Balance)
 			room.sendMessage(connId, res)
 		}
 	}
@@ -531,7 +531,7 @@ func (room *GameRoom) doBetting(clientRequestId string, connInfo *ConnectionInfo
 			// success, no need to return new balance to client
 			clientRes := (&ClientNumberGameResponse{}).Init(room, CMD_BET_UPDATE_SUCCEED)
 			clientRes.ClientRequestId = clientRequestId
-			clientRes.Val = truncateAmount(res.Balance)
+			clientRes.Val = TruncateAmount(res.Balance)
 			room.sendMessage(connInfo.ConnId, clientRes)
 		} else {
 			clientRes := (&BetFailResponse{}).Init(room)

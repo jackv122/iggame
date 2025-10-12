@@ -30,7 +30,7 @@ type CockStrategy struct {
 func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 	g.InitBase(server, com.IDCockStrategy, "CockStrategy")
 	gameStates := []com.GameState{com.GAME_STATE_STARTING, com.GAME_STATE_BETTING, com.GAME_STATE_CLOSE_BETTING, com.GAME_STATE_GEN_RESULT, com.GAME_STATE_RESULT, com.GAME_STATE_PAYOUT}
-	stateTimes := []float64{1, 30, 3, 0, 0, 8.0} // 0 mean wait forever
+	stateTimes := []float64{1, 30, 3, 0, 0, 10.0} // 0 mean wait forever
 	g.StateMng = (&com.StateManager{}).Init(gameStates, stateTimes, g.onEnterState, g.onExitState)
 	g.GameData = (&CockStrategyData{}).init(g)
 	g.gameResultData = nil
@@ -333,6 +333,7 @@ func (g *CockStrategy) OnEnterGenResult() {
 func (g *CockStrategy) OnEnterResult() {
 	fmt.Println("CockStrategy entering RESULT state")
 	// waiting for the battle to be finished
+
 	time.Sleep(5 * time.Second)
 	if g.gameResultData == nil {
 		msg := fmt.Sprintf("game %s has no result when payout", g.GameId)
@@ -379,6 +380,8 @@ func (g *CockStrategy) payout() {
 		com.VUtils.PrintError(errors.New(msg))
 		g.Server.Maintenance()
 		return
+	} else {
+		g.StateMng.NextState()
 	}
 	//fmt.Println("payout success for gamenumber", g.GameNumber)
 }
@@ -396,7 +399,7 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 		totalPay := com.Amount(0)
 		betDetail := ""
 		confirmPayouts := []*com.PayoutInfo{}
-
+		fmt.Println("betInfo.ConfirmedBetState ")
 		for _, betPlace := range betInfo.ConfirmedBetState {
 			betPay := com.Amount(0)
 
@@ -407,7 +410,7 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 			}
 
 			// apply payout also for not win bet
-			confirmPayouts = append(confirmPayouts, &com.PayoutInfo{BetType: betPlace.Type, BetAmount: betPlace.Amount, PayoutAmount: betPay})
+			confirmPayouts = append(confirmPayouts, &com.PayoutInfo{BetType: betPlace.Type, BetAmount: betPlace.Amount, PayoutAmount: com.TruncateAmount(betPay)})
 
 			if betDetail != "" {
 				betDetail += ","
@@ -537,7 +540,7 @@ func (g *CockStrategy) genResult() {
 		g.Server.Maintenance()
 		return
 	}
-	g.StateMng.NextState()
+
 	// save new trend item
 	trendItem := com.TrendItem{GameNumber: g.GameNumber, RoundId: g.RoundId, Result: resultStr, Data: string(dataStr), Txh: "", W: ""}
 	g.Trends = append([]*com.TrendItem{&trendItem}, g.Trends...)

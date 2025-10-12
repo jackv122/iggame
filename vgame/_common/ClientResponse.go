@@ -185,7 +185,7 @@ func (Content *RoomInfoContent) Init(room *GameRoom, userId UserId) *RoomInfoCon
 
 		Content.PayoutContent.PlayerPayouts = &[]*PlayerPayout{&playerPayout}
 
-		Content.PayoutContent.Balance = truncateAmount(betInfo.Balance)
+		Content.PayoutContent.Balance = TruncateAmount(betInfo.Balance)
 	}
 
 	Content.PlayerBets = [][]*BetPlace{betState}
@@ -250,7 +250,7 @@ func (res *ClientPayoutResponse) Init(room *GameRoom, PlayerPayouts *[]*PlayerPa
 	res.RoomId = room.RoomId
 	res.RoundId = game.GetRoundId()
 	res.PayoutContent = &PayoutContent{}
-	res.PayoutContent.Balance = truncateAmount(Balance)
+	res.PayoutContent.Balance = TruncateAmount(Balance)
 	res.PayoutContent.PlayerPayouts = PlayerPayouts
 	return res
 }

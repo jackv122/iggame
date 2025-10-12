@@ -336,7 +336,7 @@ func (g *Roulette) payoutRoom(room *com.GameRoom) bool {
 				totalPay += betPay
 			}
 			// apply payout also for not win bet
-			confirmPayouts = append(confirmPayouts, &com.PayoutInfo{BetType: betPlace.Type, BetAmount: betPlace.Amount, PayoutAmount: betPay})
+			confirmPayouts = append(confirmPayouts, &com.PayoutInfo{BetType: betPlace.Type, BetAmount: betPlace.Amount, PayoutAmount: com.TruncateAmount(betPay)})
 			if betDetail != "" {
 				betDetail += ","
 			}

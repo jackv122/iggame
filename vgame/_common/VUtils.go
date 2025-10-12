@@ -146,7 +146,7 @@ func RemoveElementFromArray[T comparable](arr []T, v T) []T {
 	return arr
 }
 
-func truncateAmount(amount Amount) Amount {
+func TruncateAmount(amount Amount) Amount {
 	// truncate
 	amountVal := float64(amount)
 	amountVal = float64(uint64(amountVal*100)) / 100.0
