@@ -77,8 +77,7 @@ func (g *BaseGame) GetRoundId() RoundId {
 }
 
 func (g *BaseGame) GetGameNumber() GameNumber {
-	// This will be overridden by each game if needed
-	return 0
+	return g.GameNumber
 }
 
 func (g *BaseGame) GetTrends() []*TrendItem {

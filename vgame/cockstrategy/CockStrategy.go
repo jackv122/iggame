@@ -20,17 +20,16 @@ type CockData struct {
 type CockStrategy struct {
 	com.BaseGame
 	// payout
-	GameData         *CockStrategyData
-	gameInitData     *GameInitData
-	gameResultData   *GameResultData
-	betTypeToCockMap map[com.BetType]CockID
+	GameData       *CockStrategyData
+	gameInitData   *GameInitData
+	gameResultData *GameResultData
 }
 
 // work as constructor
 func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 	g.InitBase(server, com.IDCockStrategy, "CockStrategy")
 	gameStates := []com.GameState{com.GAME_STATE_STARTING, com.GAME_STATE_BETTING, com.GAME_STATE_CLOSE_BETTING, com.GAME_STATE_GEN_RESULT, com.GAME_STATE_RESULT, com.GAME_STATE_PAYOUT}
-	stateTimes := []float64{1, 30, 3, 0, 0, 10.0} // 0 mean wait forever
+	stateTimes := []float64{1, 10, 3, 0, 0, 5.0} // 0 mean wait forever
 	g.StateMng = (&com.StateManager{}).Init(gameStates, stateTimes, g.onEnterState, g.onExitState)
 	g.GameData = (&CockStrategyData{}).init(g)
 	g.gameResultData = nil
@@ -245,13 +244,6 @@ func (g *CockStrategy) OnEnterStarting() {
 		},
 	}
 
-	betTypeToCockMap := map[com.BetType]CockID{
-		BET_TYPE_LEFT:  g.gameInitData.Cock_1.ID,
-		BET_TYPE_RIGHT: g.gameInitData.Cock_2.ID,
-	}
-
-	g.betTypeToCockMap = betTypeToCockMap
-
 	g.PayoutMap = map[string]com.Amount{
 		string(BET_TYPE_LEFT):  g.gameInitData.Cock_1.Payout,
 		string(BET_TYPE_RIGHT): g.gameInitData.Cock_2.Payout,
@@ -335,6 +327,7 @@ func (g *CockStrategy) OnEnterResult() {
 	// waiting for the battle to be finished
 
 	time.Sleep(5 * time.Second)
+
 	if g.gameResultData == nil {
 		msg := fmt.Sprintf("game %s has no result when payout", g.GameId)
 		com.VUtils.PrintError(errors.New(msg))
@@ -343,6 +336,12 @@ func (g *CockStrategy) OnEnterResult() {
 	}
 	// calculate payout & save DB but not send payout to player, payout should send when state payout start
 	for _, room := range g.RoomList {
+		if g.gameResultData != nil {
+			if len(g.gameResultData.HighlightGates) > 1 {
+				g.Server.Maintenance()
+				panic("HighlightGates > 1 " + fmt.Sprintf("%v", g.gameResultData.HighlightGates))
+			}
+		}
 		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, g.gameResultData, g.Txh, g.W)
 		room.BroadcastMessage(res)
 	}
@@ -511,26 +510,40 @@ func (g *CockStrategy) genResult() {
 
 	winnerIndex := rand.Intn(2) // 0, 1
 	winnerIndex = 0
-	winner := g.betTypeToCockMap[betTypes[winnerIndex]]
 
-	g.gameResultData = &GameResultData{
-		Version:        GAME_VERSION,
-		Winner:         winner,
-		HighlightGates: []com.BetType{},
+	betTypeToCockMap := map[com.BetType]CockID{
+		BET_TYPE_LEFT:  g.gameInitData.Cock_1.ID,
+		BET_TYPE_RIGHT: g.gameInitData.Cock_2.ID,
 	}
 
+	winnerKey := betTypes[winnerIndex]
+	winner := betTypeToCockMap[winnerKey]
+
+	highlightGates := []com.BetType{}
 	// dynamic update betResultMap base on game result
 	for _, betType := range betTypes {
-		if winner == g.betTypeToCockMap[betType] {
+		if winner == betTypeToCockMap[betType] {
 			g.GameData.betResultMap[betType] = true
 
 			// marks winner bet type as highlight gate
-			g.gameResultData.HighlightGates = append(g.gameResultData.HighlightGates, betType)
+			highlightGates = append(highlightGates, betType)
 		} else {
 			g.GameData.betResultMap[betType] = false
 		}
 	}
+
+	// debug
+	if len(highlightGates) > 1 {
+		g.Server.Maintenance()
+	}
 	// ------------------------------------------------------------
+
+	g.gameResultData = &GameResultData{
+		Version:        GAME_VERSION,
+		Winner:         winner,
+		HighlightGates: highlightGates,
+	}
+
 	dataStr, _ := json.Marshal(g.gameInitData)
 
 	resultStr := string(winner)
