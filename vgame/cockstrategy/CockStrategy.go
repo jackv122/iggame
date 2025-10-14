@@ -379,9 +379,10 @@ func (g *CockStrategy) payout() {
 		com.VUtils.PrintError(errors.New(msg))
 		g.Server.Maintenance()
 		return
-	} else {
-		g.StateMng.NextState()
 	}
+	// waiting for payout to be finished
+	time.Sleep(com.MAX_PAYOUT_WAIT_TIME)
+	g.StateMng.NextState()
 	//fmt.Println("payout success for gamenumber", g.GameNumber)
 }
 
@@ -398,7 +399,6 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 		totalPay := com.Amount(0)
 		betDetail := ""
 		confirmPayouts := []*com.PayoutInfo{}
-		fmt.Println("betInfo.ConfirmedBetState ")
 		for _, betPlace := range betInfo.ConfirmedBetState {
 			betPay := com.Amount(0)
 
@@ -435,10 +435,13 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 				return
 			}
 			if res.ErrorCode > 0 {
-				success = false
+				// error
+				room.Server.Maintenance()
+				return
 			}
 			//userId := res.UserId // alternative way
 			betInfo := room.BetInfosMap[userId]
+
 			betInfo.Balance = res.Balance
 		})
 

@@ -35,7 +35,8 @@ var (
 	PROXY_WSS_PORT   = "8094"
 	BLOCKCHAIN_URL   = "http://localhost:8088/xrp"
 
-	MAX_ACCOUNT = 9999999
+	MAX_ACCOUNT          = 9999999
+	MAX_PAYOUT_WAIT_TIME = 3 * time.Second
 
 	WALLET_MYSQL_USER = "root"
 	WALLET_MYSQL_KEY  = "hailuava12a6"

@@ -1,6 +1,8 @@
 package com
 
-import "time"
+import (
+	"time"
+)
 
 // BaseGameResponse -----------
 
