@@ -36,7 +36,7 @@ var (
 	BLOCKCHAIN_URL   = "http://localhost:8088/xrp"
 
 	MAX_ACCOUNT          = 9999999
-	MAX_PAYOUT_WAIT_TIME = 3 * time.Second
+	MAX_PAYOUT_WAIT_TIME = 3.0
 
 	WALLET_MYSQL_USER = "root"
 	WALLET_MYSQL_KEY  = "hailuava12a6"

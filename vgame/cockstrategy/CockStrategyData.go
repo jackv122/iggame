@@ -24,10 +24,26 @@ const (
 	BET_TYPE_RIGHT com.BetType = "1"
 )
 
-type GameInitData struct {
+type GameStateData struct {
+	Version           string
+	Cock_1            *CockData
+	Cock_2            *CockData
+	PairIndex         int
+	ResultBattleIndex int
+}
+
+type GameInitDataRes struct {
 	Version string
 	Cock_1  *CockData
 	Cock_2  *CockData
+}
+
+func (data *GameStateData) GetInitData() GameInitDataRes {
+	return GameInitDataRes{
+		Version: data.Version,
+		Cock_1:  data.Cock_1,
+		Cock_2:  data.Cock_2,
+	}
 }
 
 type GameResultData struct {
@@ -36,8 +52,39 @@ type GameResultData struct {
 	HighlightGates []com.BetType
 }
 
+type CockConfig struct {
+	Name   string     `json:"name"`
+	ID     CockID     `json:"id"`
+	S      float64    `json:"s"`
+	A      float64    `json:"a"`
+	Payout com.Amount `json:"payout"`
+}
+
+type Stats struct {
+	Total           int            `json:"total"`
+	Win             map[string]int `json:"win"`
+	FullWin         map[string]int `json:"fullWin"`
+	MinDur          float64        `json:"minDur"`
+	MaxDur          float64        `json:"maxDur"`
+	LeftCockConfig  CockConfig     `json:"leftCockConfig"`
+	RightCockConfig CockConfig     `json:"rightCockConfig"`
+}
+
+type BattleConfig struct {
+	Stats Stats
+	DB    []string
+}
+
 type CockStrategyData struct {
-	betResultMap map[com.BetType]bool
+	betResultMap  map[com.BetType]bool
+	BattleConfigs []BattleConfig
+}
+
+type BattleInfo struct {
+	Randoms  []string `json:"randoms"`
+	Winner   string   `json:"winner"`
+	Index    int      `json:"index"`
+	Duration float64  `json:"duration"`
 }
 
 func (d *CockStrategyData) init(g *CockStrategy) *CockStrategyData {

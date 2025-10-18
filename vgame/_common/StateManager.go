@@ -1,6 +1,7 @@
 package com
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -49,6 +50,15 @@ func (g *StateManager) SetState(currState GameState, stateTime float64) bool {
 	return true
 }
 
+func (g *StateManager) SetStateDuration(state GameState, duration float64) {
+	for i, s := range g.States {
+		if s == state {
+			g.StateDurs[i] = duration
+			return
+		}
+	}
+}
+
 func (g *StateManager) Start() {
 	g.onEnterState(g.CurrState)
 }
@@ -68,6 +78,7 @@ func (g *StateManager) NextState() {
 func (g *StateManager) StateUpdate(dt float64) {
 	dur := g.StateDurs[g.StateIndex]
 	g.StateTime += dt
+	fmt.Println("g.StateTime ", g.StateTime)
 	if dur == 0 {
 		return
 	}

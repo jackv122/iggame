@@ -108,6 +108,28 @@ func (res *ClientGameResultResponse) Init(room *GameRoom, cmd string, result int
 	return res
 }
 
+type ClientGenResultResponse struct {
+	CMD        string
+	GameId     GameId
+	RoomId     RoomId
+	GameNumber GameNumber
+	RoundId    RoundId
+	Content    interface{}
+	Txh        string
+	W          string
+}
+
+func (res *ClientGenResultResponse) Init(room *GameRoom, content interface{}) *ClientGenResultResponse {
+	res.CMD = CMD_GEN_RESULT
+	res.GameId = room.GameId
+	res.RoomId = room.RoomId
+	game := GetGameInterface(room.GameId, room.Server)
+	res.GameNumber = game.GetGameNumber()
+	res.RoundId = game.GetRoundId()
+	res.Content = content
+	return res
+}
+
 type ClientJoinGameRes struct {
 	CMD    string
 	GameId GameId

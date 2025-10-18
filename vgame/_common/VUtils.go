@@ -153,6 +153,11 @@ func TruncateAmount(amount Amount) Amount {
 	return Amount(amountVal)
 }
 
+func TruncatePayout(amountVal float64) float64 {
+	amountVal = float64(uint64(amountVal*100)) / 100.0
+	return amountVal
+}
+
 func FormatAmount(amount Amount) string {
 	// truncate
 	amountVal := float64(amount)

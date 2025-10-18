@@ -5,34 +5,90 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"time"
+	"os"
+	"path"
+	"strings"
 	com "vgame/_common"
 )
-
-type CockData struct {
-	Name     string
-	ID       CockID
-	Strength int
-	Agility  int
-	Payout   com.Amount
-}
 
 type CockStrategy struct {
 	com.BaseGame
 	// payout
 	GameData       *CockStrategyData
-	gameInitData   *GameInitData
+	gameStateData  *GameStateData
 	gameResultData *GameResultData
+
+	battleConfig BattleConfig
+	pairIndex    int
+}
+
+type CockData struct {
+	Name     string
+	ID       CockID
+	Strength float64
+	Agility  float64
+	Payout   com.Amount
+}
+
+type GenResultContent struct {
+	Cock1   *CockData
+	Cock2   *CockData
+	Randoms []string
 }
 
 // work as constructor
 func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 	g.InitBase(server, com.IDCockStrategy, "CockStrategy")
 	gameStates := []com.GameState{com.GAME_STATE_STARTING, com.GAME_STATE_BETTING, com.GAME_STATE_CLOSE_BETTING, com.GAME_STATE_GEN_RESULT, com.GAME_STATE_RESULT, com.GAME_STATE_PAYOUT}
-	stateTimes := []float64{1, 20, 3, 0, 0, 5.0} // 0 mean wait forever
+	stateTimes := []float64{1, 20, 3, 0, float64(com.MAX_PAYOUT_WAIT_TIME), 5.0} // 0 mean wait forever
 	g.StateMng = (&com.StateManager{}).Init(gameStates, stateTimes, g.onEnterState, g.onExitState)
 	g.GameData = (&CockStrategyData{}).init(g)
 	g.gameResultData = nil
+
+	g.gameStateData = &GameStateData{
+		Version: GAME_VERSION,
+	}
+
+	// parse battle configs from config/cock_strategy/
+	dirPath := fmt.Sprintf("config/cock_strategy/%s/", GAME_VERSION)
+	files, err := os.ReadDir(dirPath)
+	if err != nil {
+		com.VUtils.PrintError(err)
+		panic("Failed to load battle configs: " + err.Error())
+	}
+	g.GameData.BattleConfigs = make([]BattleConfig, 0)
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+
+		// load stats
+		filePath := path.Join(dirPath, file.Name(), "stats.json")
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			com.VUtils.PrintError(err)
+			continue
+		}
+		var battleConfig BattleConfig = BattleConfig{}
+		var Stats Stats = Stats{}
+		err = json.Unmarshal(content, &Stats)
+		if err != nil {
+			com.VUtils.PrintError(err)
+			continue
+		}
+		battleConfig.Stats = Stats
+
+		// load db
+		filePath = path.Join(dirPath, file.Name(), "db.txt")
+		content, err = os.ReadFile(filePath)
+		if err != nil {
+			com.VUtils.PrintError(err)
+			continue
+		}
+		var db []string = strings.Split(string(content), "\n")
+		battleConfig.DB = db
+		g.GameData.BattleConfigs = append(g.GameData.BattleConfigs, battleConfig)
+	}
 	return g
 }
 
@@ -69,7 +125,7 @@ func (g *CockStrategy) LoadGameState() bool {
 		return false
 	}
 	str := fmt.Sprintf("%d_%s_%d_%d_%s_%s_%s", g.GameNumber, g.GameId, g.RoundId, currState, result, g.Txh, g.W)
-
+	//fmt.Println("LoadGameState", str, com.VUtils.HashString(str), "hash", hash)
 	if hash != com.VUtils.HashString(str) {
 		fmt.Println("Wrong hash for game ", g.GameId)
 		g.Server.Stop()
@@ -88,10 +144,10 @@ func (g *CockStrategy) LoadGameState() bool {
 		}
 	}
 
-	g.gameInitData = nil
+	g.gameStateData = nil
 
 	if gameDataStr != "" {
-		err = json.Unmarshal([]byte(gameDataStr), &g.gameInitData)
+		err = json.Unmarshal([]byte(gameDataStr), &g.gameStateData)
 		if err != nil {
 			msg := fmt.Sprintf("can not parse game data for gameId %s and result %s ", g.GameId, gameDataStr)
 			com.VUtils.PrintError(errors.New(msg))
@@ -102,6 +158,8 @@ func (g *CockStrategy) LoadGameState() bool {
 
 	// resume state
 	g.StateMng.SetState(currState, statetime)
+	g.battleConfig = g.GameData.BattleConfigs[g.gameStateData.PairIndex]
+	g.pairIndex = g.gameStateData.PairIndex
 
 	// reload all bettings
 	gameConf := com.GameServerConfig.GameConfigMap[g.GameId]
@@ -132,7 +190,7 @@ func (g *CockStrategy) LoadGameState() bool {
 }
 
 func (g *CockStrategy) SaveGameState() {
-	gameDataStr, err := json.Marshal(g.gameInitData)
+	gameDataStr, err := json.Marshal(g.gameStateData)
 	if err != nil {
 		com.VUtils.PrintError(err)
 		return
@@ -146,6 +204,7 @@ func (g *CockStrategy) SaveGameState() {
 
 	str := fmt.Sprintf("%d_%s_%d_%d_%s_%s_%s", g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, resultStr, g.Txh, g.W)
 	hash := com.VUtils.HashString(str)
+	//fmt.Println("SaveGameState", str, com.VUtils.HashString(str), "hash", hash)
 	_, err2 := g.Server.DB.Exec("UPDATE gamestate SET state=?, statetime=?, result=?, data=?, tx=?, w=?, h=? WHERE gamenumber=?", g.StateMng.CurrState, g.StateMng.StateTime, resultStr, gameDataStr, g.Txh, g.W, hash, g.GameNumber)
 	if err2 != nil {
 		com.VUtils.PrintError(err2)
@@ -204,7 +263,6 @@ func (g *CockStrategy) GetPayout(betKind com.BetKind) com.Amount {
 func (g *CockStrategy) OnEnterStarting() {
 	fmt.Println("CockStrategy entering STARTING state")
 	g.RoundId++
-	// CockStrategy doesn't use PathIds/PathInd - this is Roulette-specific
 
 	g.Txh = ""
 	g.W = ""
@@ -225,31 +283,41 @@ func (g *CockStrategy) OnEnterStarting() {
 		com.VUtils.PrintError(err2)
 		return
 	}
-
-	g.gameInitData = &GameInitData{
-		Version: GAME_VERSION,
-		Cock_1: &CockData{
-			Name:     "Thunder",
-			ID:       COCK_001,
-			Strength: 85,
-			Agility:  70,
-			Payout:   2.15,
-		},
-		Cock_2: &CockData{
-			Name:     "Lightning",
-			ID:       COCK_002,
-			Strength: 75,
-			Agility:  90,
-			Payout:   1.82,
-		},
+	g.pairIndex++
+	if g.pairIndex >= len(g.GameData.BattleConfigs) {
+		g.pairIndex = 0
 	}
+	g.battleConfig = g.GameData.BattleConfigs[g.pairIndex]
+	stats := g.battleConfig.Stats
+	left := stats.LeftCockConfig
+	right := stats.RightCockConfig
+	fee := 0.04
+	leftPayout := float64(stats.Total)/float64(stats.Win[string(left.ID)]) - fee
+	rightPayout := float64(stats.Total)/float64(stats.Win[string(right.ID)]) - fee
+
+	g.gameStateData.Cock_1 = &CockData{
+		Name:     left.Name,
+		ID:       left.ID,
+		Strength: float64(left.S),
+		Agility:  float64(left.A),
+		Payout:   com.Amount(leftPayout),
+	}
+	g.gameStateData.Cock_2 = &CockData{
+		Name:     right.Name,
+		ID:       right.ID,
+		Strength: float64(right.S),
+		Agility:  float64(right.A),
+		Payout:   com.Amount(rightPayout),
+	}
+	g.gameStateData.PairIndex = g.pairIndex
+	g.gameStateData.ResultBattleIndex = -1
 
 	g.PayoutMap = map[string]com.Amount{
-		string(BET_TYPE_LEFT):  g.gameInitData.Cock_1.Payout,
-		string(BET_TYPE_RIGHT): g.gameInitData.Cock_2.Payout,
+		string(BET_TYPE_LEFT):  g.gameStateData.Cock_1.Payout,
+		string(BET_TYPE_RIGHT): g.gameStateData.Cock_2.Payout,
 	}
 
-	gameDataStr, err := json.Marshal(&g.gameInitData)
+	gameDataStr, err := json.Marshal(&g.gameStateData)
 	if err != nil {
 		com.VUtils.PrintError(err)
 		return
@@ -299,9 +367,9 @@ func (g *CockStrategy) OnEnterStarting() {
 
 	for _, room := range g.RoomList {
 		room.ResetBets()
-		room.GameInitData = g.gameInitData
+		room.GameInitData = g.gameStateData.GetInitData()
 		res := (&com.BaseGameResponse{}).Init(room, com.CMD_START_GAME)
-		res.Data = g.gameInitData
+		res.Data = g.gameStateData
 		room.BroadcastMessage(res)
 	}
 }
@@ -324,9 +392,6 @@ func (g *CockStrategy) OnEnterGenResult() {
 
 func (g *CockStrategy) OnEnterResult() {
 	fmt.Println("CockStrategy entering RESULT state")
-	// waiting for the battle to be finished
-
-	time.Sleep(5 * time.Second)
 
 	if g.gameResultData == nil {
 		msg := fmt.Sprintf("game %s has no result when payout", g.GameId)
@@ -334,6 +399,7 @@ func (g *CockStrategy) OnEnterResult() {
 		g.Server.Maintenance()
 		return
 	}
+
 	// calculate payout & save DB but not send payout to player, payout should send when state payout start
 	for _, room := range g.RoomList {
 		if g.gameResultData != nil {
@@ -380,8 +446,6 @@ func (g *CockStrategy) payout() {
 		g.Server.Maintenance()
 		return
 	}
-	// waiting for payout to be finished
-	time.Sleep(com.MAX_PAYOUT_WAIT_TIME)
 	g.StateMng.NextState()
 	//fmt.Println("payout success for gamenumber", g.GameNumber)
 }
@@ -511,16 +575,32 @@ func (g *CockStrategy) genResult() {
 		BET_TYPE_LEFT,
 		BET_TYPE_RIGHT}
 
-	winnerIndex := rand.Intn(2) // 0, 1
-	winnerIndex = 0
+	// TODO: must modify the rand for fair and safe
+	l := len(g.battleConfig.DB)
 
-	betTypeToCockMap := map[com.BetType]CockID{
-		BET_TYPE_LEFT:  g.gameInitData.Cock_1.ID,
-		BET_TYPE_RIGHT: g.gameInitData.Cock_2.ID,
+	battleIndex := rand.Intn(l)
+	// Resume game
+	if g.gameStateData.ResultBattleIndex > -1 {
+		battleIndex = g.gameStateData.ResultBattleIndex
+	}
+	g.gameStateData.ResultBattleIndex = battleIndex
+
+	battleInfoStr := g.battleConfig.DB[battleIndex]
+	// parse battleInfo json
+	var battleInfo BattleInfo = BattleInfo{}
+	err := json.Unmarshal([]byte(battleInfoStr), &battleInfo)
+	if err != nil {
+		com.VUtils.PrintError(err)
+		g.Server.Maintenance()
+		return
 	}
 
-	winnerKey := betTypes[winnerIndex]
-	winner := betTypeToCockMap[winnerKey]
+	betTypeToCockMap := map[com.BetType]CockID{
+		BET_TYPE_LEFT:  g.gameStateData.Cock_1.ID,
+		BET_TYPE_RIGHT: g.gameStateData.Cock_2.ID,
+	}
+
+	winner := CockID(battleInfo.Winner)
 
 	highlightGates := []com.BetType{}
 	// dynamic update betResultMap base on game result
@@ -547,10 +627,10 @@ func (g *CockStrategy) genResult() {
 		HighlightGates: highlightGates,
 	}
 
-	dataStr, _ := json.Marshal(g.gameInitData)
+	dataStr, _ := json.Marshal(g.gameStateData)
 
 	resultStr := string(winner)
-	err := g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, string(dataStr), "", "")
+	err = g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, string(dataStr), "", "")
 	if err != nil {
 		com.VUtils.PrintError(err)
 		g.Server.Maintenance()
@@ -563,5 +643,13 @@ func (g *CockStrategy) genResult() {
 	if len(g.Trends) > com.TREND_PAGE_SIZE {
 		g.Trends = g.Trends[:com.TREND_PAGE_SIZE]
 	}
-	g.StateMng.NextState()
+
+	for _, room := range g.RoomList {
+		content := GenResultContent{Cock1: g.gameStateData.Cock_1, Cock2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms}
+		res := (&com.ClientGenResultResponse{}).Init(room, content)
+		room.BroadcastMessage(res)
+	}
+
+	// wait for the battle to play
+	g.StateMng.SetStateDuration(com.GAME_STATE_GEN_RESULT, battleInfo.Duration)
 }

@@ -191,6 +191,7 @@ const (
 	CMD_JOIN_GAME         = "joingame"
 	CMD_JOIN_GAME_SUCCESS = "joingamesuccess"
 
+	CMD_GEN_RESULT        = "genresult"
 	CMD_JOIN_ROOM_SUCCESS = "joinroomsuccess"
 	CMD_ROOM_INFO         = "roominfo"
 	CMD_GET_ROOM_INFO     = "getroominfo"
