@@ -14,18 +14,17 @@ var logEnable = true;
         c01: {
             id: 'c01',
             name: 'Thunder',
-            s: 96,
+            s: 90,
             a: 54,   
         },
         c02: {
             
             id: 'c02',
             name: 'Storm',
-            s: 62,
-            a: 82,
+            s: 70,
+            a: 86,
         },
         cock3: {
-            
             id: 'c03',
             name: 'Storm',
             s: 62,
@@ -244,7 +243,6 @@ var logEnable = true;
         gameRunning = false
         
         onEndGameHdl = null
-        stats = null
         frameTime = 1.0/30
         randoms = []
         gameDur = 0
@@ -254,9 +252,8 @@ var logEnable = true;
             this.cock2 = new Cock()   
         }
 
-        startGame(stats, leftCockConfig, rightCockConfig, onEndGame = null, isReplay = false, gameData = {})
+        startGame(leftCockConfig, rightCockConfig, onEndGame = null, isReplay = false, gameData = {})
         {
-            this.stats = stats
             this.gameData = gameData
             this.onEndGame = onEndGame
             if (!isReplay) this.gameData.randoms = []
@@ -271,12 +268,8 @@ var logEnable = true;
             vlog('winner', winner)
             this.gameRunning = false
             vlog('winner', winner, 'gameDur', (this.gameDur).toFixed(2))
-
-            this.stats.win[winner]++
             this.gameData.winner = winner
-            
-            if (this.stats.minDur > this.gameDur) this.stats.minDur = this.gameDur
-            if (this.stats.maxDur < this.gameDur) this.stats.maxDur = this.gameDur
+            this.gameData.duration = this.gameDur
             this.onEndGame && this.onEndGame(this.gameData)
         }
 
@@ -316,35 +309,62 @@ var logEnable = true;
         stats.leftCockConfig = config[LEFT]
         stats.rightCockConfig = config[RIGHT]
         
-        stats.total = 1000
+        stats.total = 10000
         stats.win = {}
         stats.win[LEFT] = 0
         stats.win[RIGHT] = 0
         stats.minDur = 100000000
         stats.maxDur = 0
-
+        stats.fullWin = {}
+        stats.fullWin[LEFT] = 0
+        stats.fullWin[RIGHT] = 0
+        stats.leftCockConfig = config[LEFT]
+        stats.rightCockConfig = config[RIGHT]
         let db = []
         
         if (1) { // gen game datas
             logEnable = false
             for (let i = 0; i < stats.total; i++)
             {
-                engine.startGame(stats, config[LEFT], config[RIGHT]);
+                engine.startGame(config[LEFT], config[RIGHT]);
                 for (let j = 0; j < 30*100; j++) if (engine.gameRunning) {
                     engine.update()
                 }
                 if (engine.gameRunning) throw new Error('game not finish')
-                db.push(engine.gameData)
+                engine.gameData.index = i;
+                db.push(JSON.stringify(engine.gameData))
+
+                stats.win[engine.gameData.winner]++
+
+                if (engine.cock1.blood == engine.cock1.fullBlood) stats.fullWin[engine.cock1.id]++
+                else if (engine.cock2.blood == engine.cock2.fullBlood) stats.fullWin[engine.cock2.id]++
+
+                if (stats.minDur > engine.gameDur) stats.minDur = engine.gameDur
+                if (stats.maxDur < engine.gameDur) stats.maxDur = engine.gameDur
             }
 
             logEnable = true
             console.log('done', JSON.stringify(stats))
+
+            // save to config
+            const fs = require('fs')
+            const path = require('path')
+            const statsDir = `../../../config/cock_strategy/${version}/` + DES
+            if (!fs.existsSync(statsDir)) {
+                fs.mkdirSync(statsDir, { recursive: true })
+            }
+            fs.writeFileSync(path.join(statsDir, 'stats.json'), JSON.stringify(stats, null, 2))
+            console.log(`Stats saved to ${DES}/stats.json`)
+
+            fs.writeFileSync(path.join(statsDir, `db.txt`), db.join('\n'))
+            console.log(`db saved to ${DES}/db.txt`)
+            
         }
         else {
             setInterval(()=>{
                 engine.update()
             }, 1000/30)
-            engine.startGame(stats, config[LEFT], config[RIGHT])
+            engine.startGame(config[LEFT], config[RIGHT])
         }
     }
 
