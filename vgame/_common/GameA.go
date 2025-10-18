@@ -68,3 +68,7 @@ func (game *GameA) LoadTrends(gameId GameId, page uint32) []*TrendItem {
 func (game *GameA) GetResultData() interface{} {
 	return ""
 }
+
+func (g *GameA) GetGenResultData() interface{} {
+	return nil
+}

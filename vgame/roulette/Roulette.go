@@ -75,6 +75,10 @@ func (g *Roulette) GetResultData() interface{} {
 	return fmt.Sprintf("%d_%d", g.ResultNum, g.PathIds[g.PathInd])
 }
 
+func (g *Roulette) GetGenResultData() interface{} {
+	return nil
+}
+
 func (g *Roulette) OnStartComplete() {
 	fmt.Println("Roulette start complete")
 	g.StateMng.Start()

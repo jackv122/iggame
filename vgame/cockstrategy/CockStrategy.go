@@ -16,6 +16,7 @@ type CockStrategy struct {
 	// payout
 	GameData       *CockStrategyData
 	gameStateData  *GameStateData
+	genResultData  *GenResultContent
 	gameResultData *GameResultData
 
 	battleConfig BattleConfig
@@ -288,6 +289,7 @@ func (g *CockStrategy) OnEnterStarting() {
 		g.pairIndex = 0
 	}
 	g.battleConfig = g.GameData.BattleConfigs[g.pairIndex]
+	g.genResultData = nil
 	stats := g.battleConfig.Stats
 	left := stats.LeftCockConfig
 	right := stats.RightCockConfig
@@ -562,6 +564,10 @@ func (g *CockStrategy) GetResultData() interface{} {
 	return g.gameResultData
 }
 
+func (g *CockStrategy) GetGenResultData() interface{} {
+	return g.genResultData
+}
+
 func (game *CockStrategy) GetGameResultString() string {
 	if game.gameResultData == nil {
 		return ""
@@ -644,8 +650,9 @@ func (g *CockStrategy) genResult() {
 		g.Trends = g.Trends[:com.TREND_PAGE_SIZE]
 	}
 
+	content := GenResultContent{Cock1: g.gameStateData.Cock_1, Cock2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms}
+	g.genResultData = &content
 	for _, room := range g.RoomList {
-		content := GenResultContent{Cock1: g.gameStateData.Cock_1, Cock2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms}
 		res := (&com.ClientGenResultResponse{}).Init(room, content)
 		room.BroadcastMessage(res)
 	}

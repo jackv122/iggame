@@ -170,7 +170,8 @@ type RoomInfoContent struct {
 	StateStartTime  int64
 	ServerTime      int64
 
-	GameInitData interface{}
+	GameInitData  interface{}
+	GenResultData interface{}
 
 	PayoutContent *PayoutContent
 	Result        interface{}
@@ -191,6 +192,7 @@ func (Content *RoomInfoContent) Init(room *GameRoom, userId UserId) *RoomInfoCon
 	Content.StateStartTime = game.GetStateStartTime()
 	Content.ServerTime = time.Now().UnixMilli()
 	Content.Result = game.GetResultData()
+	Content.GenResultData = game.GetGenResultData()
 	Content.Txh = game.GetTxh()
 	Content.W = game.GetW()
 

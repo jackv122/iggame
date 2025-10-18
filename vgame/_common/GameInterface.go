@@ -24,6 +24,7 @@ type GameInterface interface {
 	// for saving to data base
 	GetGameResultString() string
 	GetResultData() interface{}
+	GetGenResultData() interface{}
 	GetTxh() string
 	GetW() string
 }
