@@ -650,6 +650,7 @@ func (g *CockStrategy) genResult() {
 		room.BroadcastMessage(res)
 	}
 
+	fmt.Println("genResult battleInfo.Duration", battleInfo.Duration)
 	// wait for the battle to play
 	g.StateMng.SetStateDuration(com.GAME_STATE_GEN_RESULT, battleInfo.Duration)
 }

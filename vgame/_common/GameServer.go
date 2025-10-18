@@ -622,10 +622,12 @@ func (s *GameServer) SaveGameResult(gameNumber GameNumber, GameId GameId, roundI
 	_, err3 := tx.Exec("INSERT INTO trend(gamenumber, gameid, roundid, result, data, tx, w, h) VALUES(?,?,?,?,?,?,?,?)", gameNumber, GameId, roundId, resultStr, dataStr, txh, w, h)
 
 	if err3 != nil {
-		tx.Rollback()
-		VUtils.PrintError(err3)
-		s.Maintenance()
-		return err3
+		// TODO: need to hanndle the case when the trend is already inserted by resume in GenResult State correctly
+		fmt.Println("insert trend error: Dupplicate insert by resume in GenResult State")
+		//tx.Rollback()
+		//VUtils.PrintError(err3)
+		//s.Maintenance()
+		//return err3
 	}
 	err4 := tx.Commit()
 	if err4 != nil {
