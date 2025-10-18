@@ -52,6 +52,7 @@ func (u *UserBetInfo) init(userId UserId) *UserBetInfo {
 	u.ConfirmedBetState = []*BetPlace{}
 	u.SendingBetState = nil
 	u.WaitingBetState = nil
+	u.ConfirmedPayouts = nil
 	return u
 }
 
@@ -62,6 +63,7 @@ func (u *UserBetInfo) resetBet() {
 	u.ConfirmedBetState = []*BetPlace{}
 	u.SendingBetState = nil
 	u.WaitingBetState = nil
+	u.ConfirmedPayouts = nil
 	u.Payedout = 0
 	u.TotalPay = 0
 	u.DbBettingId = 0

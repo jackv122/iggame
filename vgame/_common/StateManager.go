@@ -1,7 +1,6 @@
 package com
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -78,7 +77,7 @@ func (g *StateManager) NextState() {
 func (g *StateManager) StateUpdate(dt float64) {
 	dur := g.StateDurs[g.StateIndex]
 	g.StateTime += dt
-	fmt.Println("g.StateTime ", g.StateTime)
+	//fmt.Println("g.StateTime ", g.StateTime)
 	if dur == 0 {
 		return
 	}
