@@ -34,7 +34,7 @@ var logEnable = true;
             {
                 name: 'neck_kick',
                 attack: {
-                    name: 'neck_kick_L',
+                    name: 'neck_kick_A',
                     damage: 15,
                     cooldown: 5,
                     dur: 1.833,
@@ -42,7 +42,7 @@ var logEnable = true;
                     stamina: 5
                 },
                 defend: {
-                    name: 'neck_kick_R',
+                    name: 'neck_kick_D',
                     damage: 0,
                     cooldown: 0,
                     dur: 1.833,
@@ -55,7 +55,7 @@ var logEnable = true;
             {
                 name: 'both_kick',
                 attack: {
-                    name: 'both_kick_L',
+                    name: 'both_kick_A',
                     damage: 10,
                     cooldown: 5,
                     dur: 1.833,
@@ -63,7 +63,7 @@ var logEnable = true;
                     stamina: 3
                 },
                 defend: {
-                    name: 'both_kick_R',
+                    name: 'both_kick_D',
                     damage: 4,
                     cooldown: 0,
                     dur: 1.833,
