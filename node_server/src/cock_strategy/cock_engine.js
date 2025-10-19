@@ -143,7 +143,7 @@ var logEnable = true;
             this.skillTime = skill.dur
             this.stamina -= skill.stamina
             this.coolDownMap[skill.name] = skill.cooldown
-            this.setState(CockState.RUNNING_SKILL, skill)
+            this.setState(CockState.RUNNING_SKILL, skill.name)
         }
 
         onDamage(dam, stamina)
@@ -332,12 +332,20 @@ var logEnable = true;
                 }
                 if (engine.gameRunning) throw new Error('game not finish')
                 engine.gameData.index = i;
-                db.push(JSON.stringify(engine.gameData))
 
                 stats.win[engine.gameData.winner]++
+                let isFullWin = false
+                if (engine.cock1.blood == engine.cock1.fullBlood) {
+                    stats.fullWin[engine.cock1.id]++
+                    isFullWin = true
+                }
+                else if (engine.cock2.blood == engine.cock2.fullBlood) {
+                    stats.fullWin[engine.cock2.id]++
+                    isFullWin = true
+                }
+                engine.gameData.isFullWin = isFullWin
 
-                if (engine.cock1.blood == engine.cock1.fullBlood) stats.fullWin[engine.cock1.id]++
-                else if (engine.cock2.blood == engine.cock2.fullBlood) stats.fullWin[engine.cock2.id]++
+                db.push(JSON.stringify(engine.gameData))
 
                 if (stats.minDur > engine.gameDur) stats.minDur = engine.gameDur
                 if (stats.maxDur < engine.gameDur) stats.maxDur = engine.gameDur
