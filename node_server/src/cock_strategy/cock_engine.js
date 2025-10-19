@@ -55,7 +55,7 @@ var logEnable = true;
             {
                 name: 'both_kick',
                 attack: {
-                    name: 'neck_kick_L',
+                    name: 'both_kick_L',
                     damage: 10,
                     cooldown: 5,
                     dur: 1.833,
@@ -63,7 +63,7 @@ var logEnable = true;
                     stamina: 3
                 },
                 defend: {
-                    name: 'neck_kick_R',
+                    name: 'both_kick_R',
                     damage: 4,
                     cooldown: 0,
                     dur: 1.833,
