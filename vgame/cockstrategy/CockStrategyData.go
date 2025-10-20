@@ -7,8 +7,9 @@ import (
 const (
 	// bet kind
 	BET_Straight = "0"
-	GAME_VERSION = "1.0.0"
 )
+
+var GAME_VERSION = "1.0.0"
 
 type CockID com.BetType
 
@@ -30,6 +31,7 @@ type GameStateData struct {
 	Cock_2            *CockData
 	PairIndex         int
 	ResultBattleIndex int
+	GenResultData     *GenResultContent
 }
 
 type GameInitDataRes struct {
@@ -61,6 +63,7 @@ type CockConfig struct {
 }
 
 type Stats struct {
+	Version         string         `json:"version"`
 	Total           int            `json:"total"`
 	Win             map[string]int `json:"win"`
 	FullWin         map[string]int `json:"fullWin"`

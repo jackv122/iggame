@@ -306,6 +306,9 @@ var logEnable = true;
         let engine = new Engine()
         
         let stats = {}
+
+        stats.version = version
+        
         stats.leftCockConfig = config[LEFT]
         stats.rightCockConfig = config[RIGHT]
         

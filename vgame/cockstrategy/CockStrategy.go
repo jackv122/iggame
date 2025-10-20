@@ -32,6 +32,7 @@ type CockData struct {
 }
 
 type GenResultContent struct {
+	Version string
 	Cock1   *CockData
 	Cock2   *CockData
 	Randoms []string
@@ -78,6 +79,8 @@ func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 			continue
 		}
 		battleConfig.Stats = Stats
+
+		GAME_VERSION = Stats.Version
 
 		// load db
 		filePath = path.Join(dirPath, file.Name(), "db.txt")
@@ -633,9 +636,11 @@ func (g *CockStrategy) genResult() {
 		HighlightGates: highlightGates,
 	}
 
-	dataStr, _ := json.Marshal(g.gameStateData)
-
 	resultStr := string(winner)
+
+	g.genResultData = &GenResultContent{Version: GAME_VERSION, Cock1: g.gameStateData.Cock_1, Cock2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms}
+	dataStr, _ := json.Marshal(g.genResultData)
+
 	err = g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, string(dataStr), "", "")
 	if err != nil {
 		com.VUtils.PrintError(err)
@@ -650,10 +655,8 @@ func (g *CockStrategy) genResult() {
 		g.Trends = g.Trends[:com.TREND_PAGE_SIZE]
 	}
 
-	content := GenResultContent{Cock1: g.gameStateData.Cock_1, Cock2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms}
-	g.genResultData = &content
 	for _, room := range g.RoomList {
-		res := (&com.ClientGenResultResponse{}).Init(room, content)
+		res := (&com.ClientGenResultResponse{}).Init(room, g.genResultData)
 		room.BroadcastMessage(res)
 	}
 
