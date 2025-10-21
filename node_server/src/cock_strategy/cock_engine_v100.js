@@ -8,7 +8,6 @@ var RIGHT = 'c02'
 var logEnable = true;
 
 (function() {
-    var vlib = {}
 
     var config = {
         c01: {
@@ -18,7 +17,6 @@ var logEnable = true;
             a: 54,   
         },
         c02: {
-            
             id: 'c02',
             name: 'Storm',
             s: 70,
@@ -299,8 +297,14 @@ var logEnable = true;
             }
         }
     }
+    
     const isBrowser = typeof window !== 'undefined';
-    if (isBrowser) window['vlib'] = vlib
+    if (isBrowser) {
+        window['vlib'] = {}
+        window['vlib']['v' + version] = {}
+        let v = window['vlib']['v' + version]
+        v['Engine'] = Engine
+    }
 
     function main() {
         let engine = new Engine()
