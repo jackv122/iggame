@@ -25,6 +25,7 @@ type GameInterface interface {
 	GetGameResultString() string
 	GetResultData() interface{}
 	GetGenResultData() interface{}
+	GetGameInitData() interface{}
 	GetTxh() string
 	GetW() string
 }

@@ -192,6 +192,7 @@ func (Content *RoomInfoContent) Init(room *GameRoom, userId UserId) *RoomInfoCon
 	Content.StateStartTime = game.GetStateStartTime()
 	Content.ServerTime = time.Now().UnixMilli()
 	Content.Result = game.GetResultData()
+	Content.GameInitData = game.GetGameInitData()
 	Content.GenResultData = game.GetGenResultData()
 	Content.Txh = game.GetTxh()
 	Content.W = game.GetW()
@@ -225,11 +226,10 @@ type ClientRoomInfoResponse struct {
 	Content *RoomInfoContent
 }
 
-func (res *ClientRoomInfoResponse) Init(room *GameRoom, userId UserId, gameInitData interface{}) *ClientRoomInfoResponse {
+func (res *ClientRoomInfoResponse) Init(room *GameRoom, userId UserId) *ClientRoomInfoResponse {
 	res.CMD = CMD_ROOM_INFO
 	res.RoomId = room.RoomId
 	res.Content = (&RoomInfoContent{}).Init(room, userId)
-	res.Content.GameInitData = gameInitData
 
 	return res
 }

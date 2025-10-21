@@ -79,6 +79,10 @@ func (g *Roulette) GetGenResultData() interface{} {
 	return nil
 }
 
+func (g *Roulette) GetGameInitData() interface{} {
+	return nil
+}
+
 func (g *Roulette) OnStartComplete() {
 	fmt.Println("Roulette start complete")
 	g.StateMng.Start()

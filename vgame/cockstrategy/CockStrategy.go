@@ -16,7 +16,6 @@ type CockStrategy struct {
 	// payout
 	GameData       *CockStrategyData
 	gameStateData  *GameStateData
-	genResultData  *GenResultContent
 	gameResultData *GameResultData
 
 	battleConfig BattleConfig
@@ -79,8 +78,6 @@ func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 			continue
 		}
 		battleConfig.Stats = Stats
-
-		GAME_VERSION = Stats.Version
 
 		// load db
 		filePath = path.Join(dirPath, file.Name(), "db.txt")
@@ -292,7 +289,7 @@ func (g *CockStrategy) OnEnterStarting() {
 		g.pairIndex = 0
 	}
 	g.battleConfig = g.GameData.BattleConfigs[g.pairIndex]
-	g.genResultData = nil
+
 	stats := g.battleConfig.Stats
 	left := stats.LeftCockConfig
 	right := stats.RightCockConfig
@@ -316,6 +313,7 @@ func (g *CockStrategy) OnEnterStarting() {
 	}
 	g.gameStateData.PairIndex = g.pairIndex
 	g.gameStateData.ResultBattleIndex = -1
+	g.gameStateData.GenResultData = nil
 
 	g.PayoutMap = map[string]com.Amount{
 		string(BET_TYPE_LEFT):  g.gameStateData.Cock_1.Payout,
@@ -372,7 +370,6 @@ func (g *CockStrategy) OnEnterStarting() {
 
 	for _, room := range g.RoomList {
 		room.ResetBets()
-		room.GameInitData = g.gameStateData.GetInitData()
 		res := (&com.BaseGameResponse{}).Init(room, com.CMD_START_GAME)
 		res.Data = g.gameStateData
 		room.BroadcastMessage(res)
@@ -568,7 +565,11 @@ func (g *CockStrategy) GetResultData() interface{} {
 }
 
 func (g *CockStrategy) GetGenResultData() interface{} {
-	return g.genResultData
+	return g.gameStateData.GenResultData
+}
+
+func (g *CockStrategy) GetGameInitData() interface{} {
+	return g.gameStateData.GetInitData()
 }
 
 func (game *CockStrategy) GetGameResultString() string {
@@ -635,11 +636,12 @@ func (g *CockStrategy) genResult() {
 		Winner:         winner,
 		HighlightGates: highlightGates,
 	}
+	fmt.Println("GAME_VERSION === ", GAME_VERSION)
+	content := GenResultContent{Version: GAME_VERSION, Cock1: g.gameStateData.Cock_1, Cock2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms}
+	g.gameStateData.GenResultData = &content
+	dataStr, _ := json.Marshal(content)
 
 	resultStr := string(winner)
-
-	g.genResultData = &GenResultContent{Version: GAME_VERSION, Cock1: g.gameStateData.Cock_1, Cock2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms}
-	dataStr, _ := json.Marshal(g.genResultData)
 
 	err = g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, string(dataStr), "", "")
 	if err != nil {
@@ -656,7 +658,7 @@ func (g *CockStrategy) genResult() {
 	}
 
 	for _, room := range g.RoomList {
-		res := (&com.ClientGenResultResponse{}).Init(room, g.genResultData)
+		res := (&com.ClientGenResultResponse{}).Init(room, content)
 		room.BroadcastMessage(res)
 	}
 

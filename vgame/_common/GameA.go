@@ -72,3 +72,7 @@ func (game *GameA) GetResultData() interface{} {
 func (g *GameA) GetGenResultData() interface{} {
 	return nil
 }
+
+func (g *GameA) GetGameInitData() interface{} {
+	return nil
+}

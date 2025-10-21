@@ -351,7 +351,7 @@ func (room *GameRoom) OnMessage(cmd string, connInfo *ConnectionInfo, msg string
 	//fmt.Println("OnMessage === ", cmd)
 	switch cmd {
 	case CMD_GET_ROOM_INFO:
-		res := (&ClientRoomInfoResponse{}).Init(room, connInfo.UserId, room.GameInitData)
+		res := (&ClientRoomInfoResponse{}).Init(room, connInfo.UserId)
 		room.Server.SendPrivateMessage(room.RoomId, connInfo.ConnId, res)
 	case CMD_GET_TRENDS:
 		game := GetGameInterface(room.GameId, room.Server)
