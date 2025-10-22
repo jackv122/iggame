@@ -32,8 +32,8 @@ type CockData struct {
 
 type GenResultContent struct {
 	Version string
-	Cock1   *CockData
-	Cock2   *CockData
+	Cock_1  *CockData
+	Cock_2  *CockData
 	Randoms []string
 }
 
@@ -371,7 +371,7 @@ func (g *CockStrategy) OnEnterStarting() {
 	for _, room := range g.RoomList {
 		room.ResetBets()
 		res := (&com.BaseGameResponse{}).Init(room, com.CMD_START_GAME)
-		res.Data = g.gameStateData
+		res.Data = g.GetGameInitData()
 		room.BroadcastMessage(res)
 	}
 }
@@ -636,8 +636,8 @@ func (g *CockStrategy) genResult() {
 		Winner:         winner,
 		HighlightGates: highlightGates,
 	}
-	fmt.Println("GAME_VERSION === ", GAME_VERSION)
-	content := GenResultContent{Version: GAME_VERSION, Cock1: g.gameStateData.Cock_1, Cock2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms}
+	//fmt.Println("GAME_VERSION === ", GAME_VERSION)
+	content := GenResultContent{Version: GAME_VERSION, Cock_1: g.gameStateData.Cock_1, Cock_2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms}
 	g.gameStateData.GenResultData = &content
 	dataStr, _ := json.Marshal(content)
 

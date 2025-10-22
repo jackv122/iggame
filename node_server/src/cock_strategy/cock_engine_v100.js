@@ -250,7 +250,7 @@ var logEnable = true;
             this.cock2 = new Cock()   
         }
 
-        startGame(leftCockConfig, rightCockConfig, onEndGame = null, isReplay = false, gameData = {})
+        startGame(leftCockConfig, rightCockConfig, isReplay = false, gameData = {}, onEndGame = null)
         {
             this.gameData = gameData
             this.onEndGame = onEndGame
@@ -297,7 +297,7 @@ var logEnable = true;
             }
         }
     }
-    
+
     const isBrowser = typeof window !== 'undefined';
     if (isBrowser) {
         window['vlib'] = {}

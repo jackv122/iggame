@@ -14,10 +14,10 @@ var GAME_VERSION = "1.0.0"
 type CockID com.BetType
 
 const (
-	COCK_001 CockID = "c01"
-	COCK_002 CockID = "c02"
-	COCK_003 CockID = "c03"
-	COCK_004 CockID = "c04"
+	COCK_01 CockID = "c01"
+	COCK_02 CockID = "c02"
+	COCK_03 CockID = "c03"
+	COCK_04 CockID = "c04"
 )
 
 const (
