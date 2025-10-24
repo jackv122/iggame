@@ -198,8 +198,8 @@ func loadVSettingsFromJSON() {
 		if val, exists := game["operatorIdLength"]; exists {
 			com.OPERATOR_ID_LENGTH = int(val.(float64))
 		}
-		if val, exists := game["trendPageSize"]; exists {
-			com.TREND_PAGE_SIZE = int(val.(float64))
+		if val, exists := game["maxTrendPageSize"]; exists {
+			com.MAX_TREND_PAGE_SIZE = int(val.(float64))
 		}
 		if val, exists := game["hisPageSize"]; exists {
 			com.HIS_PAGE_SIZE = int(val.(float64))
