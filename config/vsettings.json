@@ -33,7 +33,7 @@
 		"maxAccount": 9999999,
 		"maxRound": 9999,
 		"operatorIdLength": 3,
-		"trendPageSize": 70,
+		"maxTrendPageSize": 70,
 		"hisPageSize": 20,
 		"vsocketSendTimeout": "20s"
 	},

@@ -40,6 +40,7 @@ type GenResultContent struct {
 // work as constructor
 func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 	g.InitBase(server, com.IDCockStrategy, "CockStrategy")
+	g.TREND_PAGE_SIZE = 40
 	gameStates := []com.GameState{com.GAME_STATE_STARTING, com.GAME_STATE_BETTING, com.GAME_STATE_CLOSE_BETTING, com.GAME_STATE_GEN_RESULT, com.GAME_STATE_RESULT, com.GAME_STATE_PAYOUT}
 	stateTimes := []float64{1, 20, 3, 0, float64(com.MAX_PAYOUT_WAIT_TIME), 5.0} // 0 mean wait forever
 	g.StateMng = (&com.StateManager{}).Init(gameStates, stateTimes, g.onEnterState, g.onExitState)
@@ -95,7 +96,7 @@ func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 
 func (g *CockStrategy) Start() {
 	fmt.Printf("%s start\n", g.Name)
-	trends := g.Server.LoadTrends(g.GameId, 0)
+	trends := g.Server.LoadTrends(g.GameId, 0, uint32(g.TREND_PAGE_SIZE))
 	if trends != nil {
 		g.Trends = trends
 	}
@@ -103,6 +104,10 @@ func (g *CockStrategy) Start() {
 		g.StateMng.ResetState()
 		g.OnStartComplete()
 	}
+}
+
+func (g *CockStrategy) LoadTrends(gameId com.GameId, page uint32) []*com.TrendItem {
+	return g.GetTrendsByPage(0)
 }
 
 func (g *CockStrategy) OnStartComplete() {
@@ -653,8 +658,8 @@ func (g *CockStrategy) genResult() {
 	// save new trend item
 	trendItem := com.TrendItem{GameNumber: g.GameNumber, RoundId: g.RoundId, Result: resultStr, Data: string(dataStr), Txh: "", W: ""}
 	g.Trends = append([]*com.TrendItem{&trendItem}, g.Trends...)
-	if len(g.Trends) > com.TREND_PAGE_SIZE {
-		g.Trends = g.Trends[:com.TREND_PAGE_SIZE]
+	if len(g.Trends) > com.MAX_TREND_PAGE_SIZE {
+		g.Trends = g.Trends[:com.MAX_TREND_PAGE_SIZE]
 	}
 
 	for _, room := range g.RoomList {

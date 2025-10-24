@@ -26,6 +26,7 @@ type Roulette struct {
 // work as constructor
 func (g *Roulette) Init(server *com.GameServer) *Roulette {
 	g.InitBase(server, com.IDRoulette, "Roulette")
+	g.TREND_PAGE_SIZE = 70
 	gameStates := []com.GameState{com.GAME_STATE_STARTING, com.GAME_STATE_BETTING, com.GAME_STATE_CLOSE_BETTING, com.GAME_STATE_GEN_RESULT, com.GAME_STATE_RESULT, com.GAME_STATE_PAYOUT}
 	stateTimes := []float64{1, 30, 3, 0, 10, 8.0} // 0 mean wait forever
 	g.StateMng = (&com.StateManager{}).Init(gameStates, stateTimes, g.onEnterState, g.onExitState)
@@ -46,7 +47,7 @@ func (g *Roulette) Init(server *com.GameServer) *Roulette {
 
 func (g *Roulette) Start() {
 	fmt.Printf("%s start\n", g.Name)
-	trends := g.Server.LoadTrends(g.GameId, 0)
+	trends := g.Server.LoadTrends(g.GameId, 0, uint32(g.TREND_PAGE_SIZE))
 	if trends != nil {
 		g.Trends = trends
 	}
@@ -455,8 +456,8 @@ func (g *Roulette) genResult() {
 			// save new trend item
 			trendItem := com.TrendItem{GameNumber: g.GameNumber, RoundId: g.RoundId, Result: resultStr, Txh: txResult.Txh, W: txResult.W}
 			g.Trends = append([]*com.TrendItem{&trendItem}, g.Trends...)
-			if len(g.Trends) > com.TREND_PAGE_SIZE {
-				g.Trends = g.Trends[:com.TREND_PAGE_SIZE]
+			if len(g.Trends) > com.MAX_TREND_PAGE_SIZE {
+				g.Trends = g.Trends[:com.MAX_TREND_PAGE_SIZE]
 			}
 
 			// success, break for loop

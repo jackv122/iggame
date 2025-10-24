@@ -54,9 +54,9 @@ var (
 	// db
 	WALLET_TABLE = "wallet"
 
-	MAX_ROUND          = 9999
-	ROOM_ID_LENGTH     = 9
-	OPERATOR_ID_LENGTH = 3
-	TREND_PAGE_SIZE    = 70
-	HIS_PAGE_SIZE      = 20
+	MAX_ROUND           = 9999
+	ROOM_ID_LENGTH      = 9
+	OPERATOR_ID_LENGTH  = 3
+	MAX_TREND_PAGE_SIZE = 200
+	HIS_PAGE_SIZE       = 20
 )

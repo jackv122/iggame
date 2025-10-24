@@ -638,9 +638,9 @@ func (s *GameServer) SaveGameResult(gameNumber GameNumber, GameId GameId, roundI
 	return nil
 }
 
-func (s *GameServer) LoadTrends(GameId GameId, page uint32) []*TrendItem {
-	startRow := page * uint32(TREND_PAGE_SIZE)
-	endRow := (page + 1) * uint32(TREND_PAGE_SIZE)
+func (s *GameServer) LoadTrends(GameId GameId, page uint32, pageSize uint32) []*TrendItem {
+	startRow := page * uint32(pageSize)
+	endRow := (page + 1) * uint32(pageSize)
 	query := "SELECT gamenumber, roundid, result, data, tx, w FROM trend WHERE gameid=? AND result>'' ORDER BY updatetime DESC LIMIT ?, ?"
 	//fmt.Println("query == ", query)
 	rows, err := s.DB.Query(query, GameId, startRow, endRow)

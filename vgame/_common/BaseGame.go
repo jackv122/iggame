@@ -27,6 +27,8 @@ type BaseGame struct {
 
 	TickCount int
 
+	TREND_PAGE_SIZE int
+
 	// Game data maps
 	// can map a BetType or BetKind to a payout ratio
 	PayoutMap         map[string]Amount
@@ -41,6 +43,7 @@ func (g *BaseGame) InitBase(server *GameServer, gameId GameId, name string) {
 	g.GameId = gameId
 	g.Name = name
 	g.RoundId = 0
+	g.TREND_PAGE_SIZE = 50
 	g.TimeKeeper = &TimeKeeper{}
 	g.RoomList = []*GameRoom{}
 	g.TickTime = 0
@@ -85,8 +88,8 @@ func (g *BaseGame) GetTrends() []*TrendItem {
 }
 
 func (g *BaseGame) GetTrendsByPage(page uint32) []*TrendItem {
-	start := page * uint32(TREND_PAGE_SIZE)
-	end := start + uint32(TREND_PAGE_SIZE)
+	start := page * uint32(g.TREND_PAGE_SIZE)
+	end := start + uint32(g.TREND_PAGE_SIZE)
 	if start >= uint32(len(g.Trends)) {
 		return []*TrendItem{}
 	}
