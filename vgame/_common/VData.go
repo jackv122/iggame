@@ -23,9 +23,11 @@ type TrendItem struct {
 	GameNumber GameNumber
 	RoundId    RoundId
 	Result     string
-	Data       string
+	DataStr    string
+	Data       interface{}
 	Txh        string
 	W          string
+	TrendRes   *TrendItemRes
 }
 
 type BlockChainTxResult struct {

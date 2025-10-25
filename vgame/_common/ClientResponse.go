@@ -93,9 +93,10 @@ type ClientGameResultResponse struct {
 	Result     interface{}
 	Txh        string
 	W          string
+	Trend      *TrendItemRes
 }
 
-func (res *ClientGameResultResponse) Init(room *GameRoom, cmd string, result interface{}, Txh string, W string) *ClientGameResultResponse {
+func (res *ClientGameResultResponse) Init(room *GameRoom, cmd string, result interface{}, Txh string, W string, trend *TrendItemRes) *ClientGameResultResponse {
 	res.CMD = cmd
 	res.GameId = room.GameId
 	res.RoomId = room.RoomId
@@ -103,6 +104,7 @@ func (res *ClientGameResultResponse) Init(room *GameRoom, cmd string, result int
 	res.GameNumber = game.GetGameNumber()
 	res.RoundId = game.GetRoundId()
 	res.Result = result
+	res.Trend = trend
 	res.Txh = Txh
 	res.W = W
 	return res
@@ -234,14 +236,23 @@ func (res *ClientRoomInfoResponse) Init(room *GameRoom, userId UserId) *ClientRo
 	return res
 }
 
+type TrendItemRes struct {
+	GameNumber GameNumber
+	RoundId    RoundId
+	Data       interface{}
+	Result     string
+	Txh        string
+	W          string
+}
+
 type ClientTrendResponse struct {
 	CMD    string
 	GameId GameId
 	RoomId RoomId
-	Trends *[]*TrendItem
+	Trends *[]*TrendItemRes
 }
 
-func (res *ClientTrendResponse) Init(room *GameRoom, Trends *[]*TrendItem) *ClientTrendResponse {
+func (res *ClientTrendResponse) Init(room *GameRoom, Trends *[]*TrendItemRes) *ClientTrendResponse {
 	res.CMD = CMD_TRENDS
 
 	res.GameId = room.GameId

@@ -35,7 +35,7 @@ var logEnable = true;
                     name: 'neck_kick_A',
                     damage: 15,
                     cooldown: 5,
-                    dur: 1.833,
+                    dur: 3.667,
                     buff: 0.3,
                     stamina: 5
                 },
@@ -43,7 +43,7 @@ var logEnable = true;
                     name: 'neck_kick_D',
                     damage: 0,
                     cooldown: 0,
-                    dur: 1.833,
+                    dur: 3.667,
                     buff: 0,
                     stamina: 10
                 }
@@ -56,7 +56,7 @@ var logEnable = true;
                     name: 'both_kick_A',
                     damage: 10,
                     cooldown: 5,
-                    dur: 3.667,
+                    dur: 1.833,
                     buff: 0.5,
                     stamina: 3
                 },
@@ -64,7 +64,7 @@ var logEnable = true;
                     name: 'both_kick_D',
                     damage: 4,
                     cooldown: 0,
-                    dur: 3.667,
+                    dur: 1.833,
                     buff: 0.2,
                     stamina: 7
                 }

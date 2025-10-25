@@ -31,10 +31,12 @@ type CockData struct {
 }
 
 type GenResultContent struct {
-	Version string
-	Cock_1  *CockData
-	Cock_2  *CockData
-	Randoms []string
+	Version  string
+	Cock_1   *CockData
+	Cock_2   *CockData
+	Randoms  []string
+	Duration float64
+	winner   CockID
 }
 
 // work as constructor
@@ -96,7 +98,7 @@ func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 
 func (g *CockStrategy) Start() {
 	fmt.Printf("%s start\n", g.Name)
-	trends := g.Server.LoadTrends(g.GameId, 0, uint32(g.TREND_PAGE_SIZE))
+	trends := g.Server.LoadTrends(g.GameId, 0, uint32(com.MAX_TREND_PAGE_SIZE))
 	if trends != nil {
 		g.Trends = trends
 	}
@@ -104,10 +106,6 @@ func (g *CockStrategy) Start() {
 		g.StateMng.ResetState()
 		g.OnStartComplete()
 	}
-}
-
-func (g *CockStrategy) LoadTrends(gameId com.GameId, page uint32) []*com.TrendItem {
-	return g.GetTrendsByPage(0)
 }
 
 func (g *CockStrategy) OnStartComplete() {
@@ -397,14 +395,101 @@ func (g *CockStrategy) OnEnterGenResult() {
 	g.genResult()
 }
 
+func (g *CockStrategy) genResult() {
+
+	// TODO: must modify the rand for fair and safe
+	l := len(g.battleConfig.DB)
+
+	battleIndex := rand.Intn(l)
+	// Resume game
+	if g.gameStateData.ResultBattleIndex > -1 {
+		battleIndex = g.gameStateData.ResultBattleIndex
+	}
+	g.gameStateData.ResultBattleIndex = battleIndex
+
+	battleInfoStr := g.battleConfig.DB[battleIndex]
+	// parse battleInfo json
+	var battleInfo BattleInfo = BattleInfo{}
+	err := json.Unmarshal([]byte(battleInfoStr), &battleInfo)
+	if err != nil {
+		com.VUtils.PrintError(err)
+		g.Server.Maintenance()
+		return
+	}
+
+	winner := CockID(battleInfo.Winner)
+
+	//fmt.Println("GAME_VERSION === ", GAME_VERSION)
+	content := GenResultContent{Version: GAME_VERSION, Cock_1: g.gameStateData.Cock_1, Cock_2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms, Duration: battleInfo.Duration, winner: winner}
+	g.gameStateData.GenResultData = &content
+
+	for _, room := range g.RoomList {
+		res := (&com.ClientGenResultResponse{}).Init(room, content)
+		room.BroadcastMessage(res)
+	}
+
+	fmt.Println("genResult battleInfo.Duration", battleInfo.Duration)
+	// wait for the battle to play
+	g.StateMng.SetStateDuration(com.GAME_STATE_GEN_RESULT, battleInfo.Duration)
+}
+
 func (g *CockStrategy) OnEnterResult() {
 	fmt.Println("CockStrategy entering RESULT state")
 
-	if g.gameResultData == nil {
-		msg := fmt.Sprintf("game %s has no result when payout", g.GameId)
+	if g.gameStateData.GenResultData == nil {
+		msg := fmt.Sprintf("game %s has no GenResultData when OnEnterResult", g.GameId)
 		com.VUtils.PrintError(errors.New(msg))
 		g.Server.Maintenance()
 		return
+	}
+
+	winner := g.gameStateData.GenResultData.winner
+
+	betTypes := []com.BetType{
+		BET_TYPE_LEFT,
+		BET_TYPE_RIGHT}
+	betTypeToCockMap := map[com.BetType]CockID{
+		BET_TYPE_LEFT:  g.gameStateData.Cock_1.ID,
+		BET_TYPE_RIGHT: g.gameStateData.Cock_2.ID,
+	}
+	highlightGates := []com.BetType{}
+	// dynamic update betResultMap base on game result
+	for _, betType := range betTypes {
+		if winner == betTypeToCockMap[betType] {
+			g.GameData.betResultMap[betType] = true
+
+			// marks winner bet type as highlight gate
+			highlightGates = append(highlightGates, betType)
+		} else {
+			g.GameData.betResultMap[betType] = false
+		}
+	}
+
+	// debug
+	if len(highlightGates) > 1 {
+		g.Server.Maintenance()
+	}
+	// ------------------------------------------------------------
+
+	g.gameResultData = &GameResultData{
+		Version:        GAME_VERSION,
+		Winner:         winner,
+		HighlightGates: highlightGates,
+	}
+	resultStr := string(winner)
+	dataStr, _ := json.Marshal(g.gameStateData.GenResultData)
+	err := g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, string(dataStr), "", "")
+	if err != nil {
+		com.VUtils.PrintError(err)
+		g.Server.Maintenance()
+		return
+	}
+
+	// save new trend item
+	trendItem := com.TrendItem{GameNumber: g.GameNumber, RoundId: g.RoundId, Result: resultStr, DataStr: string(dataStr), Txh: "", W: ""}
+	g.Trends = append([]*com.TrendItem{&trendItem}, g.Trends...)
+	if len(g.Trends) > com.MAX_TREND_PAGE_SIZE {
+		g.Trends = g.Trends[:com.MAX_TREND_PAGE_SIZE]
 	}
 
 	// calculate payout & save DB but not send payout to player, payout should send when state payout start
@@ -415,7 +500,7 @@ func (g *CockStrategy) OnEnterResult() {
 				panic("HighlightGates > 1 " + fmt.Sprintf("%v", g.gameResultData.HighlightGates))
 			}
 		}
-		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, g.gameResultData, g.Txh, g.W)
+		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, g.gameResultData, g.Txh, g.W, g.ToTrendItemRes(&trendItem))
 		room.BroadcastMessage(res)
 	}
 	// run it on other thread
@@ -584,90 +669,48 @@ func (game *CockStrategy) GetGameResultString() string {
 	return string(game.gameResultData.Winner)
 }
 
-func (g *CockStrategy) genResult() {
-
-	betTypes := []com.BetType{
-		BET_TYPE_LEFT,
-		BET_TYPE_RIGHT}
-
-	// TODO: must modify the rand for fair and safe
-	l := len(g.battleConfig.DB)
-
-	battleIndex := rand.Intn(l)
-	// Resume game
-	if g.gameStateData.ResultBattleIndex > -1 {
-		battleIndex = g.gameStateData.ResultBattleIndex
-	}
-	g.gameStateData.ResultBattleIndex = battleIndex
-
-	battleInfoStr := g.battleConfig.DB[battleIndex]
-	// parse battleInfo json
-	var battleInfo BattleInfo = BattleInfo{}
-	err := json.Unmarshal([]byte(battleInfoStr), &battleInfo)
-	if err != nil {
-		com.VUtils.PrintError(err)
-		g.Server.Maintenance()
-		return
-	}
-
-	betTypeToCockMap := map[com.BetType]CockID{
-		BET_TYPE_LEFT:  g.gameStateData.Cock_1.ID,
-		BET_TYPE_RIGHT: g.gameStateData.Cock_2.ID,
-	}
-
-	winner := CockID(battleInfo.Winner)
-
-	highlightGates := []com.BetType{}
-	// dynamic update betResultMap base on game result
-	for _, betType := range betTypes {
-		if winner == betTypeToCockMap[betType] {
-			g.GameData.betResultMap[betType] = true
-
-			// marks winner bet type as highlight gate
-			highlightGates = append(highlightGates, betType)
-		} else {
-			g.GameData.betResultMap[betType] = false
+// override
+func (g *CockStrategy) ToTrendItemRes(trend *com.TrendItem) *com.TrendItemRes {
+	if trend.TrendRes == nil {
+		trend.TrendRes = &com.TrendItemRes{
+			GameNumber: trend.GameNumber,
+			RoundId:    trend.RoundId,
+			Result:     trend.Result,
+			Txh:        trend.Txh,
+			W:          trend.W,
 		}
+		err := json.Unmarshal([]byte(trend.DataStr), &trend.TrendRes.Data)
+		if err != nil {
+			com.VUtils.PrintError(err)
+			g.Server.Maintenance()
+			return nil
+		}
+		// remove randoms for smaller size of trend item
+		delete(trend.TrendRes.Data.(map[string]interface{}), "Randoms")
+
 	}
 
-	// debug
-	if len(highlightGates) > 1 {
-		g.Server.Maintenance()
+	fmt.Println("trend.TrendRes === ", trend.TrendRes)
+	return trend.TrendRes
+}
+
+func (g *CockStrategy) GetTrendsByPage(page uint32) []*com.TrendItemRes {
+	start := page * uint32(g.TREND_PAGE_SIZE)
+	end := start + uint32(g.TREND_PAGE_SIZE)
+	if start >= uint32(len(g.Trends)) {
+		return []*com.TrendItemRes{}
 	}
-	// ------------------------------------------------------------
-
-	g.gameResultData = &GameResultData{
-		Version:        GAME_VERSION,
-		Winner:         winner,
-		HighlightGates: highlightGates,
+	if end > uint32(len(g.Trends)) {
+		end = uint32(len(g.Trends))
 	}
-	//fmt.Println("GAME_VERSION === ", GAME_VERSION)
-	content := GenResultContent{Version: GAME_VERSION, Cock_1: g.gameStateData.Cock_1, Cock_2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms}
-	g.gameStateData.GenResultData = &content
-	dataStr, _ := json.Marshal(content)
-
-	resultStr := string(winner)
-
-	err = g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, string(dataStr), "", "")
-	if err != nil {
-		com.VUtils.PrintError(err)
-		g.Server.Maintenance()
-		return
+	arr := g.Trends[start:end]
+	trends := []*com.TrendItemRes{}
+	for _, trend := range arr {
+		trends = append(trends, g.ToTrendItemRes(trend))
 	}
+	return trends
+}
 
-	// save new trend item
-	trendItem := com.TrendItem{GameNumber: g.GameNumber, RoundId: g.RoundId, Result: resultStr, Data: string(dataStr), Txh: "", W: ""}
-	g.Trends = append([]*com.TrendItem{&trendItem}, g.Trends...)
-	if len(g.Trends) > com.MAX_TREND_PAGE_SIZE {
-		g.Trends = g.Trends[:com.MAX_TREND_PAGE_SIZE]
-	}
-
-	for _, room := range g.RoomList {
-		res := (&com.ClientGenResultResponse{}).Init(room, content)
-		room.BroadcastMessage(res)
-	}
-
-	fmt.Println("genResult battleInfo.Duration", battleInfo.Duration)
-	// wait for the battle to play
-	g.StateMng.SetStateDuration(com.GAME_STATE_GEN_RESULT, battleInfo.Duration)
+func (g *CockStrategy) GetTrends(page uint32) []*com.TrendItemRes {
+	return g.GetTrendsByPage(page)
 }

@@ -47,7 +47,7 @@ func (g *Roulette) Init(server *com.GameServer) *Roulette {
 
 func (g *Roulette) Start() {
 	fmt.Printf("%s start\n", g.Name)
-	trends := g.Server.LoadTrends(g.GameId, 0, uint32(g.TREND_PAGE_SIZE))
+	trends := g.Server.LoadTrends(g.GameId, 0, uint32(com.MAX_TREND_PAGE_SIZE))
 	if trends != nil {
 		g.Trends = trends
 	}
@@ -263,6 +263,80 @@ func (g *Roulette) OnEnterCloseBetting() {
 	g.BaseGame.OnEnterCloseBetting()
 }
 
+func (g *Roulette) genResult() {
+	// if resume state
+	if g.ResultNum >= 0 {
+		fmt.Println("g.ResultNum existing.")
+		g.StateMng.NextState()
+		return
+	}
+	go func() {
+		maxTry := 3
+		for tryCount := 0; tryCount < maxTry; tryCount++ {
+			fmt.Println("genresult tryCount ", tryCount)
+			apiUrl := com.BLOCKCHAIN_URL + "?sender=a10&amount=" + fmt.Sprintf("%06d", g.GetRoundId())
+			// create new http request
+			response, err := http.Get(apiUrl)
+			if err != nil {
+				com.VUtils.PrintError(err)
+				if tryCount < maxTry {
+					continue
+				} else {
+					return
+				}
+			}
+
+			defer func() {
+				response.Body.Close()
+			}()
+
+			responseBody, err := io.ReadAll(response.Body)
+
+			if err != nil {
+				com.VUtils.PrintError(err)
+				return
+			}
+
+			txResult := com.BlockChainTxResult{}
+			txResult.ErrorMessage = ""
+			err = json.Unmarshal(responseBody, &txResult)
+
+			if err != nil {
+				com.VUtils.PrintError(err)
+				return
+			}
+
+			if txResult.ErrorCode != 0 {
+				if tryCount < maxTry {
+					//time.Sleep(time.Duration(2+com.VUtils.GetRandInt(2)) * time.Second)
+					fmt.Println("txResult.ErrorCode: ", txResult.ErrorCode, " tryCount: ", tryCount)
+					continue
+				} else {
+					com.VUtils.PrintError(errors.New("txResult.ErrorMessage " + txResult.ErrorMessage))
+					return
+				}
+			}
+			g.Txh = txResult.Txh
+			g.W = txResult.W
+			// success
+			last := txResult.Txh[len(txResult.Txh)-2:]
+			n := new(big.Int) // big endian
+			n.SetString(last, 16)
+			var v int = int(n.Int64())
+			rand := float64(v) / float64(0xff)
+			//fmt.Println("txh ", txResult.Txh, " rand ", formatAmount(Amount(rand)))
+			//g.ResultNum = com.VUtils.GetRandInt(37)
+			g.ResultNum = int(rand * float64(36+0.9999))
+			g.Txh = txResult.Txh
+			g.W = txResult.W
+			g.StateMng.NextState()
+			// success, break for loop
+			break
+		}
+
+	}()
+}
+
 func (g *Roulette) OnEnterGenResult() {
 	fmt.Printf("%s entering GEN_RESULT state\n", g.Name)
 	for _, room := range g.RoomList {
@@ -279,10 +353,26 @@ func (g *Roulette) OnEnterResult() {
 		g.Server.Maintenance()
 		return
 	}
+
+	resultStr := strconv.Itoa(g.ResultNum)
+	err := g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, "", g.Txh, g.W)
+	if err != nil {
+		com.VUtils.PrintError(err)
+		g.Server.Maintenance()
+		return
+	}
+
+	// save new trend item
+	trendItem := com.TrendItem{GameNumber: g.GameNumber, RoundId: g.RoundId, Result: resultStr, Txh: g.Txh, W: g.W}
+	g.Trends = append([]*com.TrendItem{&trendItem}, g.Trends...)
+	if len(g.Trends) > com.MAX_TREND_PAGE_SIZE {
+		g.Trends = g.Trends[:com.MAX_TREND_PAGE_SIZE]
+	}
+
 	// calculate payout & save DB but not send payout to player, payout should send when state payout start
 	for _, room := range g.RoomList {
 		result := strconv.Itoa(g.ResultNum) + "_" + strconv.Itoa(g.PathIds[g.PathInd])
-		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, result, g.Txh, g.W)
+		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, result, g.Txh, g.W, g.ToTrendItemRes(&trendItem))
 		room.BroadcastMessage(res)
 	}
 	// run it on other thread
@@ -379,92 +469,6 @@ func (g *Roulette) payoutRoom(room *com.GameRoom) bool {
 
 	}
 	return success
-}
-
-func (g *Roulette) genResult() {
-	// if resume state
-	if g.ResultNum >= 0 {
-		fmt.Println("g.ResultNum existing.")
-		g.StateMng.NextState()
-		return
-	}
-	go func() {
-		maxTry := 3
-		for tryCount := 0; tryCount < maxTry; tryCount++ {
-			fmt.Println("genresult tryCount ", tryCount)
-			apiUrl := com.BLOCKCHAIN_URL + "?sender=a10&amount=" + fmt.Sprintf("%06d", g.GetRoundId())
-			// create new http request
-			response, err := http.Get(apiUrl)
-			if err != nil {
-				com.VUtils.PrintError(err)
-				if tryCount < maxTry {
-					continue
-				} else {
-					return
-				}
-			}
-
-			defer func() {
-				response.Body.Close()
-			}()
-
-			responseBody, err := io.ReadAll(response.Body)
-
-			if err != nil {
-				com.VUtils.PrintError(err)
-				return
-			}
-
-			txResult := com.BlockChainTxResult{}
-			txResult.ErrorMessage = ""
-			err = json.Unmarshal(responseBody, &txResult)
-
-			if err != nil {
-				com.VUtils.PrintError(err)
-				return
-			}
-
-			if txResult.ErrorCode != 0 {
-				if tryCount < maxTry {
-					//time.Sleep(time.Duration(2+com.VUtils.GetRandInt(2)) * time.Second)
-					fmt.Println("txResult.ErrorCode: ", txResult.ErrorCode, " tryCount: ", tryCount)
-					continue
-				} else {
-					com.VUtils.PrintError(errors.New("txResult.ErrorMessage " + txResult.ErrorMessage))
-					return
-				}
-			}
-			g.Txh = txResult.Txh
-			g.W = txResult.W
-			// success
-			last := txResult.Txh[len(txResult.Txh)-2:]
-			n := new(big.Int) // big endian
-			n.SetString(last, 16)
-			var v int = int(n.Int64())
-			rand := float64(v) / float64(0xff)
-			//fmt.Println("txh ", txResult.Txh, " rand ", formatAmount(Amount(rand)))
-			//g.ResultNum = com.VUtils.GetRandInt(37)
-			g.ResultNum = int(rand * float64(36+0.9999))
-			resultStr := strconv.Itoa(g.ResultNum)
-			err = g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, "", txResult.Txh, txResult.W)
-			if err != nil {
-				com.VUtils.PrintError(err)
-				g.Server.Maintenance()
-				return
-			}
-			g.StateMng.NextState()
-			// save new trend item
-			trendItem := com.TrendItem{GameNumber: g.GameNumber, RoundId: g.RoundId, Result: resultStr, Txh: txResult.Txh, W: txResult.W}
-			g.Trends = append([]*com.TrendItem{&trendItem}, g.Trends...)
-			if len(g.Trends) > com.MAX_TREND_PAGE_SIZE {
-				g.Trends = g.Trends[:com.MAX_TREND_PAGE_SIZE]
-			}
-
-			// success, break for loop
-			break
-		}
-
-	}()
 }
 
 // end state machine -------------------------------------------
@@ -586,4 +590,8 @@ func (game *Roulette) GetGameResultString() string {
 		return ""
 	}
 	return strconv.Itoa(game.ResultNum)
+}
+
+func (game *Roulette) GetTrends(page uint32) []*com.TrendItemRes {
+	return game.GetTrendsByPage(page)
 }

@@ -822,7 +822,7 @@ func (s *WalletServerOperator) loadHistory(gameId com.GameId, userId com.UserId,
 
 	for rows2.Next() {
 		trend := com.TrendItem{}
-		err := rows2.Scan(&trend.GameNumber, &trend.RoundId, &trend.Result, &trend.Data, &trend.Txh, &trend.W)
+		err := rows2.Scan(&trend.GameNumber, &trend.RoundId, &trend.Result, &trend.DataStr, &trend.Txh, &trend.W)
 		if err != nil {
 			com.VUtils.PrintError(err)
 			return nil, nil

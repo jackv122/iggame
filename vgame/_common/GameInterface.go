@@ -12,7 +12,7 @@ type GameInterface interface {
 	GetBetKind(betType BetType) BetKind
 	GetBetLimit(level LimitLevel) map[Currency]map[BetKind]*BetLimit
 	GetAllBetLimits() [](map[Currency]map[BetKind]*BetLimit)
-	LoadTrends(GameId GameId, page uint32) []*TrendItem
+	GetTrends(page uint32) []*TrendItemRes
 
 	GetCurState() GameState
 	GetRemainStateTime() float64

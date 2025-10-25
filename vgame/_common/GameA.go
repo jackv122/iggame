@@ -61,8 +61,8 @@ func (game *GameA) GetGameResultString() string {
 	return ""
 }
 
-func (game *GameA) LoadTrends(gameId GameId, page uint32) []*TrendItem {
-	return game.Trends
+func (game *GameA) GetTrends(page uint32) []*TrendItemRes {
+	return []*TrendItemRes{}
 }
 
 func (game *GameA) GetResultData() interface{} {

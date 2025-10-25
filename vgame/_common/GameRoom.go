@@ -355,7 +355,7 @@ func (room *GameRoom) OnMessage(cmd string, connInfo *ConnectionInfo, msg string
 		room.Server.SendPrivateMessage(room.RoomId, connInfo.ConnId, res)
 	case CMD_GET_TRENDS:
 		game := GetGameInterface(room.GameId, room.Server)
-		trends := game.LoadTrends(room.GameId, 0)
+		trends := game.GetTrends(0)
 		if trends != nil {
 			res := (&ClientTrendResponse{}).Init(room, &trends)
 			room.Server.SendPrivateMessage(room.RoomId, connInfo.ConnId, res)

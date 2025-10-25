@@ -32,6 +32,7 @@ type GameStateData struct {
 	PairIndex         int
 	ResultBattleIndex int
 	GenResultData     *GenResultContent
+	BattleInfo        *BattleInfo
 }
 
 type GameInitDataRes struct {

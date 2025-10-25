@@ -83,20 +83,40 @@ func (g *BaseGame) GetGameNumber() GameNumber {
 	return g.GameNumber
 }
 
-func (g *BaseGame) GetTrends() []*TrendItem {
-	return g.Trends
-}
-
-func (g *BaseGame) GetTrendsByPage(page uint32) []*TrendItem {
+func (g *BaseGame) GetTrendsByPage(page uint32) []*TrendItemRes {
 	start := page * uint32(g.TREND_PAGE_SIZE)
 	end := start + uint32(g.TREND_PAGE_SIZE)
 	if start >= uint32(len(g.Trends)) {
-		return []*TrendItem{}
+		return []*TrendItemRes{}
 	}
 	if end > uint32(len(g.Trends)) {
 		end = uint32(len(g.Trends))
 	}
-	return g.Trends[start:end]
+	arr := g.Trends[start:end]
+	trends := []*TrendItemRes{}
+	for _, trend := range arr {
+		trends = append(trends, g.ToTrendItemRes(trend))
+	}
+	return trends
+}
+
+func (g *BaseGame) ToTrendItemRes(trend *TrendItem) *TrendItemRes {
+	if trend.TrendRes == nil {
+		trend.TrendRes = &TrendItemRes{
+			GameNumber: trend.GameNumber,
+			RoundId:    trend.RoundId,
+			Result:     trend.Result,
+			Txh:        trend.Txh,
+			W:          trend.W,
+		}
+		err := json.Unmarshal([]byte(trend.DataStr), &trend.TrendRes.Data)
+		if err != nil {
+			VUtils.PrintError(err)
+			g.Server.Maintenance()
+			return nil
+		}
+	}
+	return trend.TrendRes
 }
 
 func (g *BaseGame) GetW() string {

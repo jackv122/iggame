@@ -653,7 +653,13 @@ func (s *GameServer) LoadTrends(GameId GameId, page uint32, pageSize uint32) []*
 	trends := []*TrendItem{}
 	for rows.Next() {
 		trend := TrendItem{}
-		err := rows.Scan(&trend.GameNumber, &trend.RoundId, &trend.Result, &trend.Data, &trend.Txh, &trend.W)
+		err := rows.Scan(&trend.GameNumber, &trend.RoundId, &trend.Result, &trend.DataStr, &trend.Txh, &trend.W)
+		if err != nil {
+			VUtils.PrintError(err)
+			s.Maintenance()
+			return nil
+		}
+		err = json.Unmarshal([]byte(trend.DataStr), &trend.Data)
 		if err != nil {
 			VUtils.PrintError(err)
 			s.Maintenance()
