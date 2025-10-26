@@ -34,7 +34,7 @@ var logEnable = true;
                 attack: {
                     name: 'neck_kick_A',
                     damage: 20,
-                    cooldown: 3,
+                    cooldown: 1,
                     dur: 3.667,
                     buff: 0.3,
                     stamina: 5
@@ -352,7 +352,7 @@ var logEnable = true;
                 engine.gameData.index = i;
 
                 
-                if (engine.cock1.blood > 0 && engine.cock2.blood <= 0 || engine.cock1.blood <= 0 && engine.cock2.blood > 0) 
+                if ((engine.cock1.blood > 0 && engine.cock2.blood <= 0) || (engine.cock1.blood <= 0 && engine.cock2.blood > 0)) 
                 {
                     successCount++
                     db.push(JSON.stringify(engine.gameData))
