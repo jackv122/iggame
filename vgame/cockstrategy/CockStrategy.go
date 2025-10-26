@@ -260,10 +260,6 @@ func (g *CockStrategy) GetBetLimit(level com.LimitLevel) map[com.Currency]map[co
 	return g.SmallLimitBetMap
 }
 
-func (g *CockStrategy) GetPayout(betKind com.BetKind) com.Amount {
-	return g.PayoutMap[string(betKind)]
-}
-
 func (g *CockStrategy) OnEnterStarting() {
 	fmt.Println("CockStrategy entering STARTING state")
 	g.RoundId++
@@ -318,7 +314,7 @@ func (g *CockStrategy) OnEnterStarting() {
 	g.gameStateData.ResultBattleIndex = -1
 	g.gameStateData.GenResultData = nil
 
-	g.PayoutMap = map[string]com.Amount{
+	g.gameStateData.PayoutMap = map[string]com.Amount{
 		string(BET_TYPE_LEFT):  g.gameStateData.Cock_1.Payout,
 		string(BET_TYPE_RIGHT): g.gameStateData.Cock_2.Payout,
 	}
@@ -562,7 +558,12 @@ func (g *CockStrategy) payoutRoom(room *com.GameRoom) bool {
 
 			isWin := g.GameData.betResultMap[betPlace.Type]
 			if isWin {
-				betPay = g.PayoutMap[string(betPlace.Type)] * betPlace.Amount
+				if g.gameStateData.PayoutMap[string(betPlace.Type)] == 0 {
+					com.VUtils.PrintError(errors.New("PayoutMap[string(betPlace.Type)] is 0"))
+					g.Server.Maintenance()
+					return false
+				}
+				betPay = g.gameStateData.PayoutMap[string(betPlace.Type)] * betPlace.Amount
 				totalPay += betPay
 			}
 

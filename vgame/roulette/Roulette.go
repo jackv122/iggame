@@ -16,6 +16,9 @@ type Roulette struct {
 	com.BaseGame
 	// payout
 	GameData *RouletteData
+	// Game data maps
+	// can map a BetType or BetKind to a payout ratio
+	PayoutMap map[string]com.Amount
 
 	// Roulette-specific fields
 	PathIds   []int
@@ -26,6 +29,7 @@ type Roulette struct {
 // work as constructor
 func (g *Roulette) Init(server *com.GameServer) *Roulette {
 	g.InitBase(server, com.IDRoulette, "Roulette")
+	g.PayoutMap = map[string]com.Amount{}
 	g.TREND_PAGE_SIZE = 70
 	gameStates := []com.GameState{com.GAME_STATE_STARTING, com.GAME_STATE_BETTING, com.GAME_STATE_CLOSE_BETTING, com.GAME_STATE_GEN_RESULT, com.GAME_STATE_RESULT, com.GAME_STATE_PAYOUT}
 	stateTimes := []float64{1, 30, 3, 0, 10, 8.0} // 0 mean wait forever
@@ -579,10 +583,6 @@ func (game *Roulette) GetBetLimit(level com.LimitLevel) map[com.Currency]map[com
 	}
 
 	return game.SmallLimitBetMap
-}
-
-func (game *Roulette) GetPayout(betKind com.BetKind) com.Amount {
-	return game.PayoutMap[string(betKind)]
 }
 
 func (game *Roulette) GetGameResultString() string {

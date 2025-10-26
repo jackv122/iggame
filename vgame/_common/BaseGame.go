@@ -29,9 +29,6 @@ type BaseGame struct {
 
 	TREND_PAGE_SIZE int
 
-	// Game data maps
-	// can map a BetType or BetKind to a payout ratio
-	PayoutMap         map[string]Amount
 	SmallLimitBetMap  map[Currency]map[BetKind]*BetLimit
 	MediumLimitBetMap map[Currency]map[BetKind]*BetLimit
 	BetKindMap        map[string]BetKind
@@ -52,8 +49,6 @@ func (g *BaseGame) InitBase(server *GameServer, gameId GameId, name string) {
 	g.Txh = ""
 	g.W = ""
 
-	// Initialize game data maps
-	g.PayoutMap = make(map[string]Amount)
 	g.SmallLimitBetMap = make(map[Currency]map[BetKind]*BetLimit)
 	g.MediumLimitBetMap = make(map[Currency]map[BetKind]*BetLimit)
 	g.BetKindMap = make(map[string]BetKind)
@@ -231,10 +226,6 @@ func (g *BaseGame) GetBetLimit(level LimitLevel) map[Currency]map[BetKind]*BetLi
 	}
 
 	return g.SmallLimitBetMap
-}
-
-func (g *BaseGame) GetPayout(betKind BetKind) Amount {
-	return g.PayoutMap[string(betKind)]
 }
 
 // loadLimitMapsFromJSON loads limit maps from JSON configuration file

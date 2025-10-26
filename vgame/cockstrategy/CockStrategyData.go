@@ -33,19 +33,22 @@ type GameStateData struct {
 	ResultBattleIndex int
 	GenResultData     *GenResultContent
 	BattleInfo        *BattleInfo
+	PayoutMap         map[string]com.Amount
 }
 
 type GameInitDataRes struct {
-	Version string
-	Cock_1  *CockData
-	Cock_2  *CockData
+	Version   string
+	Cock_1    *CockData
+	Cock_2    *CockData
+	PayoutMap map[string]com.Amount
 }
 
 func (data *GameStateData) GetInitData() GameInitDataRes {
 	return GameInitDataRes{
-		Version: data.Version,
-		Cock_1:  data.Cock_1,
-		Cock_2:  data.Cock_2,
+		Version:   data.Version,
+		Cock_1:    data.Cock_1,
+		Cock_2:    data.Cock_2,
+		PayoutMap: data.PayoutMap,
 	}
 }
 
