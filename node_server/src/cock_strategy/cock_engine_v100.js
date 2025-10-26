@@ -220,10 +220,12 @@ var logEnable = true;
                         // play skill
                         this.playSkill(skill.attack)
                         this.enemy.playSkill(skill.defend)
+                        return true
                     }
                 }
                 
             }
+            return false
         }
     }
 
