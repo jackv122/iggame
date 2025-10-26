@@ -401,6 +401,7 @@ func (g *CockStrategy) genResult() {
 	l := len(g.battleConfig.DB)
 
 	battleIndex := rand.Intn(l)
+	battleIndex = 0
 	// Resume game
 	if g.gameStateData.ResultBattleIndex > -1 {
 		battleIndex = g.gameStateData.ResultBattleIndex
@@ -471,11 +472,6 @@ func (g *CockStrategy) OnEnterResult() {
 	}
 	// ------------------------------------------------------------
 
-	g.gameResultData = &GameResultData{
-		Version:        GAME_VERSION,
-		Winner:         winner,
-		HighlightGates: highlightGates,
-	}
 	resultStr := string(winner)
 	dataStr, _ := json.Marshal(g.gameStateData.GenResultData)
 	err := g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, string(dataStr), "", "")
@@ -493,6 +489,12 @@ func (g *CockStrategy) OnEnterResult() {
 	}
 
 	// calculate payout & save DB but not send payout to player, payout should send when state payout start
+	g.gameResultData = &GameResultData{
+		Version:        GAME_VERSION,
+		Winner:         winner,
+		HighlightGates: highlightGates,
+		Trend:          g.ToTrendItemRes(&trendItem),
+	}
 	for _, room := range g.RoomList {
 		if g.gameResultData != nil {
 			if len(g.gameResultData.HighlightGates) > 1 {
@@ -500,7 +502,7 @@ func (g *CockStrategy) OnEnterResult() {
 				panic("HighlightGates > 1 " + fmt.Sprintf("%v", g.gameResultData.HighlightGates))
 			}
 		}
-		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, g.gameResultData, g.Txh, g.W, g.ToTrendItemRes(&trendItem))
+		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, g.gameResultData, g.Txh, g.W)
 		room.BroadcastMessage(res)
 	}
 	// run it on other thread
@@ -690,7 +692,6 @@ func (g *CockStrategy) ToTrendItemRes(trend *com.TrendItem) *com.TrendItemRes {
 
 	}
 
-	fmt.Println("trend.TrendRes === ", trend.TrendRes)
 	return trend.TrendRes
 }
 

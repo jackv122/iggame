@@ -372,7 +372,7 @@ func (g *Roulette) OnEnterResult() {
 	// calculate payout & save DB but not send payout to player, payout should send when state payout start
 	for _, room := range g.RoomList {
 		result := strconv.Itoa(g.ResultNum) + "_" + strconv.Itoa(g.PathIds[g.PathInd])
-		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, result, g.Txh, g.W, g.ToTrendItemRes(&trendItem))
+		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, result, g.Txh, g.W)
 		room.BroadcastMessage(res)
 	}
 	// run it on other thread

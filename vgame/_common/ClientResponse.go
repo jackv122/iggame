@@ -93,10 +93,9 @@ type ClientGameResultResponse struct {
 	Result     interface{}
 	Txh        string
 	W          string
-	Trend      *TrendItemRes
 }
 
-func (res *ClientGameResultResponse) Init(room *GameRoom, cmd string, result interface{}, Txh string, W string, trend *TrendItemRes) *ClientGameResultResponse {
+func (res *ClientGameResultResponse) Init(room *GameRoom, cmd string, result interface{}, Txh string, W string) *ClientGameResultResponse {
 	res.CMD = cmd
 	res.GameId = room.GameId
 	res.RoomId = room.RoomId
@@ -104,7 +103,6 @@ func (res *ClientGameResultResponse) Init(room *GameRoom, cmd string, result int
 	res.GameNumber = game.GetGameNumber()
 	res.RoundId = game.GetRoundId()
 	res.Result = result
-	res.Trend = trend
 	res.Txh = Txh
 	res.W = W
 	return res

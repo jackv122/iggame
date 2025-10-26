@@ -53,6 +53,7 @@ type GameResultData struct {
 	Version        string
 	Winner         CockID
 	HighlightGates []com.BetType
+	Trend          *com.TrendItemRes
 }
 
 type CockConfig struct {

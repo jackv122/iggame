@@ -33,8 +33,8 @@ var logEnable = true;
                 name: 'neck_kick',
                 attack: {
                     name: 'neck_kick_A',
-                    damage: 15,
-                    cooldown: 5,
+                    damage: 20,
+                    cooldown: 3,
                     dur: 3.667,
                     buff: 0.3,
                     stamina: 5
@@ -54,7 +54,7 @@ var logEnable = true;
                 name: 'both_kick',
                 attack: {
                     name: 'both_kick_A',
-                    damage: 10,
+                    damage: 15,
                     cooldown: 5,
                     dur: 1.833,
                     buff: 0.5,
@@ -62,7 +62,7 @@ var logEnable = true;
                 },
                 defend: {
                     name: 'both_kick_D',
-                    damage: 4,
+                    damage: 6,
                     cooldown: 0,
                     dur: 1.833,
                     buff: 0.2,
@@ -86,7 +86,7 @@ var logEnable = true;
     class CockState {
         static IDLE = 'idle'
         static RUNNING_SKILL = 'running_skill'
-        static DIE = 'die'
+        static LOSE = 'lose'
         static WIN = 'win'
     }
 
@@ -148,13 +148,15 @@ var logEnable = true;
         {
             this.blood -= dam
             vlog(this.name, 'onDamage', dam,  'blood ', this.blood)
-            this.onChangeBloodHdl && this.onChangeBloodHdl(this.blood)
+            
             if (this.blood <= 0)
             {
                 this.blood = 0
-                this.setState(CockState.DIE)
+                this.setState(CockState.LOSE)
                 this.enemy.setState(CockState.WIN)
             }
+
+            this.onChangeBloodHdl && this.onChangeBloodHdl(this.blood, this.fullBlood)
         }
 
         setState(state, data = null) {
@@ -188,7 +190,7 @@ var logEnable = true;
                         this.setState(CockState.IDLE)
                     }
                     break
-                case CockState.DIE:
+                case CockState.LOSE:
                     break
                 case CockState.WIN:
                     break
@@ -255,10 +257,16 @@ var logEnable = true;
             this.gameData = gameData
             this.onEndGame = onEndGame
             if (!isReplay) this.gameData.randoms = []
+            this.isReplay = isReplay
             this.gameRunning = true
             this.gameDur = 0
             this.cock1.init(leftCockConfig, this.cock2, this, this.cock1ChangeStateHdl, this.cock1ChangeBloodHdl)
             this.cock2.init(rightCockConfig, this.cock1, this, this.cock2ChangeStateHdl, this.cock2ChangeBloodHdl)
+        }
+
+        stopGame()
+        {
+            this.gameRunning = false
         }
 
         endGame(winner)
@@ -316,7 +324,7 @@ var logEnable = true;
         stats.leftCockConfig = config[LEFT]
         stats.rightCockConfig = config[RIGHT]
         
-        stats.total = 10000
+        let total = 10000
         stats.win = {}
         stats.win[LEFT] = 0
         stats.win[RIGHT] = 0
@@ -327,11 +335,12 @@ var logEnable = true;
         stats.fullWin[RIGHT] = 0
         stats.leftCockConfig = config[LEFT]
         stats.rightCockConfig = config[RIGHT]
+        stats.averageDur = 0
         let db = []
-        
+        let successCount = 0
         if (1) { // gen game datas
             logEnable = false
-            for (let i = 0; i < stats.total; i++)
+            for (let i = 0; i < total; i++)
             {
                 engine.startGame(config[LEFT], config[RIGHT]);
                 for (let j = 0; j < 30*100; j++) if (engine.gameRunning) {
@@ -340,24 +349,31 @@ var logEnable = true;
                 if (engine.gameRunning) throw new Error('game not finish')
                 engine.gameData.index = i;
 
-                stats.win[engine.gameData.winner]++
-                let isFullWin = false
-                if (engine.cock1.blood == engine.cock1.fullBlood) {
-                    stats.fullWin[engine.cock1.id]++
-                    isFullWin = true
-                }
-                else if (engine.cock2.blood == engine.cock2.fullBlood) {
-                    stats.fullWin[engine.cock2.id]++
-                    isFullWin = true
-                }
-                engine.gameData.isFullWin = isFullWin
+                
+                if (engine.cock1.blood > 0 && engine.cock2.blood <= 0 || engine.cock1.blood <= 0 && engine.cock2.blood > 0) 
+                {
+                    successCount++
+                    db.push(JSON.stringify(engine.gameData))
+                    stats.averageDur += engine.gameDur
+                    if (stats.minDur > engine.gameDur) stats.minDur = engine.gameDur
+                    if (stats.maxDur < engine.gameDur) stats.maxDur = engine.gameDur
 
-                db.push(JSON.stringify(engine.gameData))
-
-                if (stats.minDur > engine.gameDur) stats.minDur = engine.gameDur
-                if (stats.maxDur < engine.gameDur) stats.maxDur = engine.gameDur
+                    stats.win[engine.gameData.winner]++
+                    let isFullWin = false
+                    if (engine.cock1.blood == engine.cock1.fullBlood) {
+                        stats.fullWin[engine.cock1.id]++
+                        isFullWin = true
+                    }
+                    else if (engine.cock2.blood == engine.cock2.fullBlood) {
+                        stats.fullWin[engine.cock2.id]++
+                        isFullWin = true
+                    }
+                    engine.gameData.isFullWin = isFullWin
+                }
+                
             }
-
+            stats.total = successCount
+            stats.averageDur = stats.averageDur / stats.total
             logEnable = true
             console.log('done', JSON.stringify(stats))
 
