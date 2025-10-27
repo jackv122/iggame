@@ -185,7 +185,7 @@ func (g *BaseGame) Stop() {
 
 // Common state entry methods that are the same for all games
 func (g *BaseGame) OnEnterBetting() {
-	fmt.Printf("%s entering BETTING state\n", g.Name)
+	//fmt.Printf("%s entering BETTING state\n", g.Name)
 	for _, room := range g.RoomList {
 		res := (&BaseGameResponse{}).Init(room, CMD_START_BET_SUCCEED)
 		room.BroadcastMessage(res)
@@ -193,7 +193,7 @@ func (g *BaseGame) OnEnterBetting() {
 }
 
 func (g *BaseGame) OnEnterCloseBetting() {
-	fmt.Printf("%s entering CLOSE_BETTING state\n", g.Name)
+	//fmt.Printf("%s entering CLOSE_BETTING state\n", g.Name)
 	for _, room := range g.RoomList {
 		res := (&BaseGameResponse{}).Init(room, CMD_STOP_BET_SUCCEED)
 		room.BroadcastMessage(res)
@@ -201,7 +201,7 @@ func (g *BaseGame) OnEnterCloseBetting() {
 }
 
 func (g *BaseGame) OnEnterPayout() {
-	fmt.Printf("%s entering PAYOUT state\n", g.Name)
+	//fmt.Printf("%s entering PAYOUT state\n", g.Name)
 	// broadcast payout to users ---
 	for _, room := range g.RoomList {
 		room.NotifyReward()
