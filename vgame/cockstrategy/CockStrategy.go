@@ -397,7 +397,7 @@ func (g *CockStrategy) genResult() {
 	l := len(g.battleConfig.DB)
 
 	battleIndex := rand.Intn(l)
-	battleIndex = 0
+	//battleIndex = 0
 	// Resume game
 	if g.gameStateData.ResultBattleIndex > -1 {
 		battleIndex = g.gameStateData.ResultBattleIndex

@@ -18,6 +18,7 @@ docs/
 client/
 xrp/
 telegram/
+deploy/
 main
 #//////////////////////////
 # NPM
