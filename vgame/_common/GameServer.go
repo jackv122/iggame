@@ -422,7 +422,7 @@ func (s *GameServer) Start() {
 	if err != nil {
 		panic(err)
 	}
-	s.proxyConn = (&VSocket{}).Init(conn, s.onProxyMessageHdl, s.onProxyCloseHdl, true, 4, PROXY_ENCRYPT)
+	s.proxyConn = (&VSocket{}).Init(conn, s.onProxyMessageHdl, s.onProxyCloseHdl, true, 10, PROXY_ENCRYPT)
 	//s.testVsocket()
 	// ----
 

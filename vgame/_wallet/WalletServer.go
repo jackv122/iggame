@@ -74,7 +74,7 @@ func (s *WalletServer) startSocketServer() {
 			return
 		}
 		go func() {
-			(&com.VSocket{}).Init(conn, s.onMsgHdl, s.onConnCloseHdl, true, 4, 1)
+			(&com.VSocket{}).Init(conn, s.onMsgHdl, s.onConnCloseHdl, true, 10, 1)
 		}()
 	}
 }
