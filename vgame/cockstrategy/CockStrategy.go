@@ -97,7 +97,7 @@ func (g *CockStrategy) Init(server *com.GameServer) *CockStrategy {
 }
 
 func (g *CockStrategy) Start() {
-	fmt.Printf("%s start\n", g.Name)
+	//fmt.Printf("%s start\n", g.Name)
 	trends := g.Server.LoadTrends(g.GameId, 0, uint32(com.MAX_TREND_PAGE_SIZE))
 	if trends != nil {
 		g.Trends = trends
@@ -109,7 +109,7 @@ func (g *CockStrategy) Start() {
 }
 
 func (g *CockStrategy) OnStartComplete() {
-	fmt.Println("CockStrategy start complete")
+	//fmt.Println("CockStrategy start complete")
 	g.StateMng.Start()
 	gameConf := com.GameServerConfig.GameConfigMap[g.GameId]
 	com.VUtils.RepeatCall(g.Update, gameConf.FrameTime, 0, g.GetTimeKeeper())
@@ -182,7 +182,6 @@ func (g *CockStrategy) LoadGameState() bool {
 				room := g.Server.RoomMng.GetRoom(operatorId, roomConf.RoomId)
 				room.ResumeBetting(res.Bettings)
 			}
-			fmt.Println("loadRequestCount ===")
 			loadRequestCount--
 			if loadRequestCount == 0 {
 				g.OnStartComplete()
@@ -219,7 +218,7 @@ func (g *CockStrategy) SaveGameState() {
 
 func (g *CockStrategy) onEnterState(state com.GameState) {
 	// only broadcast for the users joined room already, so use room to broadcast insteak
-	fmt.Println("onEnterState ", state)
+	//fmt.Println("onEnterState ", state)
 	switch state {
 	case com.GAME_STATE_STARTING:
 		g.OnEnterStarting()
@@ -261,7 +260,7 @@ func (g *CockStrategy) GetBetLimit(level com.LimitLevel) map[com.Currency]map[co
 }
 
 func (g *CockStrategy) OnEnterStarting() {
-	fmt.Println("CockStrategy entering STARTING state")
+	//fmt.Println("CockStrategy entering STARTING state")
 	g.RoundId++
 
 	g.Txh = ""
@@ -384,7 +383,7 @@ func (g *CockStrategy) OnEnterCloseBetting() {
 }
 
 func (g *CockStrategy) OnEnterGenResult() {
-	fmt.Printf("%s entering GEN_RESULT state\n", g.Name)
+	//fmt.Printf("%s entering GEN_RESULT state\n", g.Name)
 	for _, room := range g.RoomList {
 		room.NotifyEndBetting()
 	}
