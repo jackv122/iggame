@@ -424,13 +424,13 @@ func (g *CockStrategy) genResult() {
 		room.BroadcastMessage(res)
 	}
 
-	fmt.Println("genResult battleInfo.Duration", battleInfo.Duration)
+	//fmt.Println("genResult battleInfo.Duration", battleInfo.Duration)
 	// wait for the battle to play
 	g.StateMng.SetStateDuration(com.GAME_STATE_GEN_RESULT, battleInfo.Duration)
 }
 
 func (g *CockStrategy) OnEnterResult() {
-	fmt.Println("CockStrategy entering RESULT state")
+	//fmt.Println("CockStrategy entering RESULT state")
 
 	if g.gameStateData.GenResultData == nil {
 		msg := fmt.Sprintf("game %s has no GenResultData when OnEnterResult", g.GameId)
