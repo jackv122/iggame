@@ -33,9 +33,9 @@ var logEnable = true;
                 name: 'neck_kick',
                 attack: {
                     name: 'neck_kick_A',
-                    damage: 20,
+                    damage: 16,
                     cooldown: 1,
-                    dur: 3.667,
+                    dur: 2.43,
                     buff: 0.3,
                     stamina: 5
                 },
@@ -43,7 +43,7 @@ var logEnable = true;
                     name: 'neck_kick_D',
                     damage: 0,
                     cooldown: 0,
-                    dur: 3.667,
+                    dur: 2.43,
                     buff: 0,
                     stamina: 10
                 }
@@ -54,7 +54,7 @@ var logEnable = true;
                 name: 'both_kick',
                 attack: {
                     name: 'both_kick_A',
-                    damage: 15,
+                    damage: 12,
                     cooldown: 5,
                     dur: 1.833,
                     buff: 0.5,
@@ -122,7 +122,7 @@ var logEnable = true;
             this.onChangeBloodHdl = onChangeBloodHdl
             this.a = conf.a
             this.s = conf.s
-            this.fullBlood = this.s*0.7 + this.a*0.3
+            this.fullBlood = this.s*0.5 + this.a*0.5
             
             this.blood = this.fullBlood
             this.state = CockState.IDLE
@@ -201,7 +201,7 @@ var logEnable = true;
         {
             this.checkActiveSkillTime -= dt;
             if (this.checkActiveSkillTime < 0) {
-                this.checkActiveSkillTime = 1.0
+                this.checkActiveSkillTime += 0.5
                 // running check
                 let r = this.game.random()*this.stamina
                 if (r > this.MIN_STAMINA*0.7) {

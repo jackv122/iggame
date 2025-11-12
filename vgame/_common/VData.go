@@ -19,6 +19,15 @@ type LimitLevel uint
 type EncryptType uint8
 type GameState uint8
 
+type GameDetailItem struct {
+	GameNumber GameNumber
+	RoundId    RoundId
+	Result     string
+	DataStr    string
+	Txh        string
+	W          string
+}
+
 type TrendItem struct {
 	GameNumber GameNumber
 	RoundId    RoundId

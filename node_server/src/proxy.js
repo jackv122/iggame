@@ -454,7 +454,7 @@ function startUWS() {
                                             ErrorCode: 0,
                                             GameId: param.GameId,
                                             Items: res.Items,
-                                            gameDetails: res.GameDetails
+                                            GameDetails: res.GameDetails
                                         })
                                         safeSend(ws, message)
                                     }
@@ -464,7 +464,7 @@ function startUWS() {
                                             ErrorCode: res.ErrorCode,
                                             GameId: param.GameId,
                                             Items: [],
-                                            gameDetails: []
+                                            GameDetails: []
                                         })
                                         safeSend(ws, message)
                                     }
@@ -482,7 +482,7 @@ function startUWS() {
                             ConnId: connId,
                             Data: message // TODO: check if need to encode Base64
                         }
-                        console.log(JSON.stringify(roomIdToConnMap));
+                        //console.log(JSON.stringify(roomIdToConnMap));
                         if (roomIdToConnMap[roomId] !== undefined) {
                             let vs = roomIdToConnMap[roomId]
                             vs.send(textEncoder.encode(JSON.stringify(param)), null, null)

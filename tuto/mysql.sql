@@ -59,3 +59,7 @@ CREATE TABLE `trend` (
   PRIMARY KEY (`gamenumber`),
   KEY `createtime` (`updatetime` DESC)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+mysqldump -u root -p --no-data vwallet_001 > vwallet_001.sql
+https://dbdiagram.io/d

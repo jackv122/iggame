@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 	com "vgame/_common"
@@ -777,12 +778,12 @@ func (s *WalletServerOperator) loadHistoryTcp(vs *com.VSocket, requestId uint64,
 	response.Items, response.GameDetails = s.loadHistory(param.GameId, param.UserId, param.PageInd)
 }
 
-func (s *WalletServerOperator) loadHistory(gameId com.GameId, userId com.UserId, page uint32) ([]*com.HistoryRecord, []*com.TrendItem) {
+func (s *WalletServerOperator) loadHistory(gameId com.GameId, userId com.UserId, page uint32) ([]*com.HistoryRecord, []*com.GameDetailItem) {
 	startRow := page * uint32(com.HIS_PAGE_SIZE)
 	endRow := (page + 1) * uint32(com.HIS_PAGE_SIZE)
 	// getting the last 1 month data
 	// TODO: time range should be passing as params
-	query := "SELECT gamenumber, roundid, betdetail, payout, updatetime FROM betting WHERE gameid=? AND userid=? AND payedout=1 AND updatetime >= DATE_SUB(NOW(), INTERVAL 1 MONTH) ORDER BY updatetime DESC LIMIT ?, ?"
+	query := "SELECT gamenumber, roundid, betdetail, result, payout, updatetime FROM betting WHERE gameid=? AND userid=? AND payedout=1 AND updatetime >= DATE_SUB(NOW(), INTERVAL 1 MONTH) ORDER BY updatetime DESC LIMIT ?, ?"
 	rows, err := s.db.Query(query, gameId, userId, startRow, endRow)
 
 	if err != nil {
@@ -808,9 +809,23 @@ func (s *WalletServerOperator) loadHistory(gameId com.GameId, userId com.UserId,
 		gameNumbers = append(gameNumbers, bet.GameNumber)
 	}
 
-	query = "SELECT gamenumber, roundid, result, data, tx, w FROM trend WHERE gameid=? AND gamenumber IN (?)"
+	// Build query with proper placeholders for IN clause
+	if len(gameNumbers) == 0 {
+		return items, []*com.GameDetailItem{}
+	}
+
+	args := make([]interface{}, len(gameNumbers)+1)
+	args[0] = gameId
+	for i, num := range gameNumbers {
+		args[i+1] = num
+	}
+
+	// Build placeholders string without fmt.Sprintf to avoid SQL injection concerns
+	placeholders := strings.Repeat("?,", len(gameNumbers))
+	placeholders = placeholders[:len(placeholders)-1] // Remove trailing comma
+	query = "SELECT gamenumber, roundid, result, data, tx, w FROM trend WHERE gameid=? AND gamenumber IN (" + placeholders + ")"
 	var rows2 *sql.Rows = nil
-	rows2, err = s.gameDb.Query(query, gameId, gameNumbers)
+	rows2, err = s.gameDb.Query(query, args...)
 
 	if err != nil {
 		com.VUtils.PrintError(err)
@@ -818,10 +833,10 @@ func (s *WalletServerOperator) loadHistory(gameId com.GameId, userId com.UserId,
 	}
 	defer rows2.Close()
 
-	trends := []*com.TrendItem{}
+	trends := []*com.GameDetailItem{}
 
 	for rows2.Next() {
-		trend := com.TrendItem{}
+		trend := com.GameDetailItem{}
 		err := rows2.Scan(&trend.GameNumber, &trend.RoundId, &trend.Result, &trend.DataStr, &trend.Txh, &trend.W)
 		if err != nil {
 			com.VUtils.PrintError(err)

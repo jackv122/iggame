@@ -34,14 +34,14 @@ type HistoryResponse struct {
 	ErrorCode   int
 	ErrorMsg    string
 	Items       []*HistoryRecord
-	GameDetails []*TrendItem
+	GameDetails []*GameDetailItem
 }
 
 func (res *HistoryResponse) Init() *HistoryResponse {
 	res.ErrorCode = 0
 	res.ErrorMsg = ""
 	res.Items = []*HistoryRecord{}
-	res.GameDetails = []*TrendItem{}
+	res.GameDetails = []*GameDetailItem{}
 	return res
 }
 
