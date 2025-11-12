@@ -356,7 +356,7 @@ var logEnable = true;
                 if ((engine.cock1.blood > 0 && engine.cock2.blood <= 0) || (engine.cock1.blood <= 0 && engine.cock2.blood > 0)) 
                 {
                     successCount++
-                    db.push(JSON.stringify(engine.gameData))
+                    
                     stats.averageDur += engine.gameDur
                     if (stats.minDur > engine.gameDur) stats.minDur = engine.gameDur
                     if (stats.maxDur < engine.gameDur) stats.maxDur = engine.gameDur
@@ -371,7 +371,9 @@ var logEnable = true;
                         stats.fullWin[engine.cock2.id]++
                         isFullWin = true
                     }
-                    engine.gameData.isFullWin = isFullWin
+                    engine.gameData.excellentWin = isFullWin
+
+                    db.push(JSON.stringify(engine.gameData))
                 }
                 
             }

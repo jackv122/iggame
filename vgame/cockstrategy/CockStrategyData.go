@@ -89,11 +89,11 @@ type CockStrategyData struct {
 }
 
 type BattleInfo struct {
-	Randoms   []string `json:"randoms"`
-	Winner    string   `json:"winner"`
-	Index     int      `json:"index"`
-	Duration  float64  `json:"duration"`
-	IsFullWin bool     `json:"isFullWin"`
+	Randoms      []string `json:"randoms"`
+	Winner       string   `json:"winner"`
+	Index        int      `json:"index"`
+	Duration     float64  `json:"duration"`
+	ExcellentWin bool     `json:"excellentWin"`
 }
 
 func (d *CockStrategyData) init(g *CockStrategy) *CockStrategyData {

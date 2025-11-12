@@ -36,7 +36,10 @@ type GenResultContent struct {
 	Cock_2   *CockData
 	Randoms  []string
 	Duration float64
-	winner   CockID
+
+	// hiden fields - not exported to JSON - not saved to DB
+	winner       CockID
+	excellentWin bool
 }
 
 // work as constructor
@@ -416,7 +419,7 @@ func (g *CockStrategy) genResult() {
 	winner := CockID(battleInfo.Winner)
 
 	//fmt.Println("GAME_VERSION === ", GAME_VERSION)
-	content := GenResultContent{Version: GAME_VERSION, Cock_1: g.gameStateData.Cock_1, Cock_2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms, Duration: battleInfo.Duration, winner: winner}
+	content := GenResultContent{Version: GAME_VERSION, Cock_1: g.gameStateData.Cock_1, Cock_2: g.gameStateData.Cock_2, Randoms: battleInfo.Randoms, Duration: battleInfo.Duration, winner: winner, excellentWin: battleInfo.ExcellentWin}
 	g.gameStateData.GenResultData = &content
 
 	for _, room := range g.RoomList {
@@ -440,6 +443,7 @@ func (g *CockStrategy) OnEnterResult() {
 	}
 
 	winner := g.gameStateData.GenResultData.winner
+	excellentWin := g.gameStateData.GenResultData.excellentWin
 
 	betTypes := []com.BetType{
 		BET_TYPE_LEFT,
@@ -468,6 +472,11 @@ func (g *CockStrategy) OnEnterResult() {
 	// ------------------------------------------------------------
 
 	resultStr := string(winner)
+	if excellentWin {
+		resultStr += ",1"
+	} else {
+		resultStr += ",0"
+	}
 	dataStr, _ := json.Marshal(g.gameStateData.GenResultData)
 	err := g.Server.SaveGameResult(g.GameNumber, g.GameId, g.RoundId, g.StateMng.CurrState, g.StateMng.StateTime, resultStr, string(dataStr), "", "")
 	if err != nil {
