@@ -1,6 +1,7 @@
 {
 	"serverFrameTime": 0.2,
 	"workerNum": 4,
+	"gameServerVsocketThreadNum": 10,
 	"games": [
 		{
 			"gameId": "roul01",

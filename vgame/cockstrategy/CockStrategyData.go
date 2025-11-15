@@ -6,7 +6,8 @@ import (
 
 const (
 	// bet kind
-	BET_Straight = "0"
+	BET_Straight  = "0"
+	BET_Excellent = "1"
 )
 
 var GAME_VERSION = "1.0.0"
@@ -21,8 +22,9 @@ const (
 )
 
 const (
-	BET_TYPE_LEFT  com.BetType = "0"
-	BET_TYPE_RIGHT com.BetType = "1"
+	BET_TYPE_LEFT      com.BetType = "0"
+	BET_TYPE_RIGHT     com.BetType = "1"
+	BET_TYPE_EXCELLENT com.BetType = "2"
 )
 
 type GameStateData struct {
@@ -101,6 +103,7 @@ func (d *CockStrategyData) init(g *CockStrategy) *CockStrategyData {
 	// init BetKindMap
 	g.BetKindMap[string(BET_TYPE_LEFT)] = com.BetKind(BET_Straight)
 	g.BetKindMap[string(BET_TYPE_RIGHT)] = com.BetKind(BET_Straight)
+	g.BetKindMap[string(BET_TYPE_EXCELLENT)] = com.BetKind(BET_Excellent)
 
 	return d
 }

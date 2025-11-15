@@ -74,7 +74,7 @@ var logEnable = true;
     }
 
     function vlog(...args) {
-        if (window && window.vlib) logEnable = window.vlib.logEnable
+        if (typeof window !== 'undefined' && window.vlib) logEnable = window.vlib.logEnable
         if (!logEnable) return
         const now = new Date();
 

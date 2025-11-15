@@ -295,8 +295,8 @@ func (g *CockStrategy) OnEnterStarting() {
 	left := stats.LeftCockConfig
 	right := stats.RightCockConfig
 	fee := 0.04
-	leftPayout := float64(stats.Total)/float64(stats.Win[string(left.ID)]) - fee
-	rightPayout := float64(stats.Total)/float64(stats.Win[string(right.ID)]) - fee
+	leftPayout := float64(stats.Total) / float64(stats.Win[string(left.ID)]) * (1 - fee)
+	rightPayout := float64(stats.Total) / float64(stats.Win[string(right.ID)]) * (1 - fee)
 
 	g.gameStateData.Cock_1 = &CockData{
 		Name:     left.Name,
@@ -312,13 +312,19 @@ func (g *CockStrategy) OnEnterStarting() {
 		Agility:  float64(right.A),
 		Payout:   com.Amount(rightPayout),
 	}
+	fullWin1 := float64(stats.FullWin[string(left.ID)])
+	fullWin2 := float64(stats.FullWin[string(right.ID)])
+	excellentPayout := float64(stats.Total) / (fullWin1 + fullWin2)
+	excellentPayout = excellentPayout * (1 - fee)
+
 	g.gameStateData.PairIndex = g.pairIndex
 	g.gameStateData.ResultBattleIndex = -1
 	g.gameStateData.GenResultData = nil
 
 	g.gameStateData.PayoutMap = map[string]com.Amount{
-		string(BET_TYPE_LEFT):  g.gameStateData.Cock_1.Payout,
-		string(BET_TYPE_RIGHT): g.gameStateData.Cock_2.Payout,
+		string(BET_TYPE_LEFT):      g.gameStateData.Cock_1.Payout,
+		string(BET_TYPE_RIGHT):     g.gameStateData.Cock_2.Payout,
+		string(BET_TYPE_EXCELLENT): com.Amount(excellentPayout),
 	}
 
 	gameDataStr, err := json.Marshal(&g.gameStateData)
@@ -399,7 +405,7 @@ func (g *CockStrategy) genResult() {
 	l := len(g.battleConfig.DB)
 
 	battleIndex := rand.Intn(l)
-	//battleIndex = 0
+	battleIndex = 44
 	// Resume game
 	if g.gameStateData.ResultBattleIndex > -1 {
 		battleIndex = g.gameStateData.ResultBattleIndex
@@ -447,7 +453,8 @@ func (g *CockStrategy) OnEnterResult() {
 
 	betTypes := []com.BetType{
 		BET_TYPE_LEFT,
-		BET_TYPE_RIGHT}
+		BET_TYPE_RIGHT,
+	}
 	betTypeToCockMap := map[com.BetType]CockID{
 		BET_TYPE_LEFT:  g.gameStateData.Cock_1.ID,
 		BET_TYPE_RIGHT: g.gameStateData.Cock_2.ID,
@@ -457,7 +464,6 @@ func (g *CockStrategy) OnEnterResult() {
 	for _, betType := range betTypes {
 		if winner == betTypeToCockMap[betType] {
 			g.GameData.betResultMap[betType] = true
-
 			// marks winner bet type as highlight gate
 			highlightGates = append(highlightGates, betType)
 		} else {
@@ -465,9 +471,10 @@ func (g *CockStrategy) OnEnterResult() {
 		}
 	}
 
-	// debug
-	if len(highlightGates) > 1 {
-		g.Server.Maintenance()
+	// check for excellent win
+	if excellentWin {
+		highlightGates = append(highlightGates, BET_TYPE_EXCELLENT)
+		g.GameData.betResultMap[BET_TYPE_EXCELLENT] = true
 	}
 	// ------------------------------------------------------------
 
@@ -500,12 +507,6 @@ func (g *CockStrategy) OnEnterResult() {
 		Trend:          g.ToTrendItemRes(&trendItem),
 	}
 	for _, room := range g.RoomList {
-		if g.gameResultData != nil {
-			if len(g.gameResultData.HighlightGates) > 1 {
-				g.Server.Maintenance()
-				panic("HighlightGates > 1 " + fmt.Sprintf("%v", g.gameResultData.HighlightGates))
-			}
-		}
 		res := (&com.ClientGameResultResponse{}).Init(room, com.CMD_GAME_RESULT, g.gameResultData, g.Txh, g.W)
 		room.BroadcastMessage(res)
 	}
@@ -673,11 +674,16 @@ func (g *CockStrategy) GetGameInitData() interface{} {
 	return g.gameStateData.GetInitData()
 }
 
-func (game *CockStrategy) GetGameResultString() string {
-	if game.gameResultData == nil {
+func (g *CockStrategy) GetGameResultString() string {
+	if g.gameResultData == nil {
 		return ""
 	}
-	return string(game.gameResultData.Winner)
+	excellentWin := g.gameStateData.GenResultData.excellentWin
+	if excellentWin {
+		return string(g.gameResultData.Winner) + ",1"
+	} else {
+		return string(g.gameResultData.Winner) + ",0"
+	}
 }
 
 // override

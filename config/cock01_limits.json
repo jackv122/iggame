@@ -5,6 +5,11 @@
         "betKind": "BET_Straight",
         "min": 1,
         "max": 30
+      },
+      "1": {
+        "betKind": "BET_Excellent",
+        "min": 1,
+        "max": 5
       }
     }
   },
@@ -14,6 +19,11 @@
         "betKind": "BET_Straight",
         "min": 10,
         "max": 300
+      },
+      "1": {
+        "betKind": "BET_Excellent",
+        "min": 10,
+        "max": 50
       }
     }
   }

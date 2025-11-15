@@ -1,7 +1,9 @@
 package wal
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"unsafe"
@@ -15,6 +17,46 @@ type CommonBalanceParam struct {
 	Infos    []*com.AmountInfo
 	Checksum uint64
 }
+
+type WalletServerConfig struct {
+	WalletServerVsocketThreadNum int `json:"walletServerVsocketThreadNum"`
+}
+
+func (c *WalletServerConfig) Init() *WalletServerConfig {
+	// Load configuration from JSON file
+	configPath := "config/wallet_config.json"
+
+	// Check if config file exists, if not use default values
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		fmt.Printf("Config file %s not found, using default values\n", configPath)
+		c.loadDefaultConfig()
+		return c
+	}
+
+	// Read and parse JSON config
+	jsonData, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		fmt.Printf("Error reading config file: %v, using default values\n", err)
+		c.loadDefaultConfig()
+		return c
+	}
+
+	// Directly unmarshal into the Go structure
+	err = json.Unmarshal(jsonData, c)
+	if err != nil {
+		fmt.Printf("Error parsing config file: %v, using default values\n", err)
+		c.loadDefaultConfig()
+		return c
+	}
+
+	return c
+}
+
+func (c *WalletServerConfig) loadDefaultConfig() {
+	c.WalletServerVsocketThreadNum = 10
+}
+
+var WalletServerConfigInstance = (&WalletServerConfig{}).Init()
 
 type WalletServer struct {
 	operatorList []com.OperatorID
@@ -74,7 +116,11 @@ func (s *WalletServer) startSocketServer() {
 			return
 		}
 		go func() {
-			(&com.VSocket{}).Init(conn, s.onMsgHdl, s.onConnCloseHdl, true, 10, 1)
+			threadNum := uint8(WalletServerConfigInstance.WalletServerVsocketThreadNum)
+			if threadNum == 0 {
+				threadNum = 10 // default fallback
+			}
+			(&com.VSocket{}).Init(conn, s.onMsgHdl, s.onConnCloseHdl, true, threadNum, 1)
 		}()
 	}
 }

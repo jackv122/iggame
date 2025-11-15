@@ -47,10 +47,11 @@ func (info *ConnectionInfo) leaveRoom(roomId RoomId) {
 }
 
 type ServerConfig struct {
-	ServerFrameTime float64                `json:"serverFrameTime"`
-	WorkerNum       int                    `json:"workerNum"`
-	Games           []GameConfig           `json:"games"`
-	GameConfigMap   map[GameId]*GameConfig `json:"-"`
+	ServerFrameTime            float64                `json:"serverFrameTime"`
+	WorkerNum                  int                    `json:"workerNum"`
+	GameServerVsocketThreadNum int                    `json:"gameServerVsocketThreadNum"`
+	Games                      []GameConfig           `json:"games"`
+	GameConfigMap              map[GameId]*GameConfig `json:"-"`
 }
 
 func (c *ServerConfig) Init() *ServerConfig {
@@ -91,6 +92,7 @@ func (c *ServerConfig) Init() *ServerConfig {
 func (c *ServerConfig) loadDefaultConfig() {
 	c.ServerFrameTime = 1.0 / 5.0
 	c.WorkerNum = 4
+	c.GameServerVsocketThreadNum = 10
 	c.GameConfigMap = map[GameId]*GameConfig{}
 
 	// Default Roulette configuration
@@ -408,7 +410,11 @@ func (s *GameServer) Start() {
 	if err != nil {
 		panic(err)
 	}
-	s.WalletConn = (&VSocket{}).Init(conn, s.onWalletMessageHdl, s.onWalletCloseHdl, true, 4, GAME_ENCRYPT)
+	walletThreadNum := uint8(GameServerConfig.GameServerVsocketThreadNum)
+	if walletThreadNum == 0 {
+		walletThreadNum = 4 // default fallback
+	}
+	s.WalletConn = (&VSocket{}).Init(conn, s.onWalletMessageHdl, s.onWalletCloseHdl, true, walletThreadNum, GAME_ENCRYPT)
 	serverType := uint8(LOCAL_CONN_TYPE_GAME)
 	bytes := []byte{serverType}
 	cmd := uint16(WCMD_REGISTER_CONN)
@@ -422,7 +428,11 @@ func (s *GameServer) Start() {
 	if err != nil {
 		panic(err)
 	}
-	s.proxyConn = (&VSocket{}).Init(conn, s.onProxyMessageHdl, s.onProxyCloseHdl, true, 10, PROXY_ENCRYPT)
+	proxyThreadNum := uint8(GameServerConfig.GameServerVsocketThreadNum)
+	if proxyThreadNum == 0 {
+		proxyThreadNum = 10 // default fallback
+	}
+	s.proxyConn = (&VSocket{}).Init(conn, s.onProxyMessageHdl, s.onProxyCloseHdl, true, proxyThreadNum, PROXY_ENCRYPT)
 	//s.testVsocket()
 	// ----
 
