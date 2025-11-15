@@ -6,6 +6,7 @@ var LEFT = 'c01'
 var RIGHT = 'c02'
 // ---------
 var logEnable = true;
+var essilon = 0.000001;
 
 (function() {
 
@@ -22,7 +23,7 @@ var logEnable = true;
             s: 70,
             a: 86,
         },
-        cock3: {
+        c03: {
             id: 'c03',
             name: 'Storm',
             s: 62,
@@ -114,6 +115,9 @@ var logEnable = true;
 
         game = null
 
+        nextState = null
+        nextData = null
+
         init(conf, enemy, game, onChangeStateHdl, onChangeBloodHdl) {
             this.game = game
             this.name = conf.name
@@ -150,7 +154,7 @@ var logEnable = true;
             this.blood -= dam
             vlog(this.name, 'onDamage', dam,  'blood ', this.blood)
             
-            if (this.blood <= 0)
+            if (this.blood <= essilon)
             {
                 this.blood = 0
                 this.setState(CockState.LOSE)
@@ -161,7 +165,11 @@ var logEnable = true;
         }
 
         setState(state, data = null) {
-            vlog(this.name, 'setState', state)
+            this.nextState = state
+            this.nextData = data
+        }
+
+        _setState(state, data = null) {
             this.state = state
             this.onChangeStateHdl && this.onChangeStateHdl(state, data)
             if (state == CockState.WIN) {
@@ -170,6 +178,11 @@ var logEnable = true;
         }
 
         update(dt) {
+            if (this.nextState !== null) {
+                this._setState(this.nextState, this.nextData)
+                this.nextState = null
+                this.nextData = null
+            }
             // decrease 3 stamina / 1s
             this.stamina -= dt*2
             if (this.stamina < this.MIN_STAMINA) this.stamina = this.MIN_STAMINA
@@ -182,13 +195,11 @@ var logEnable = true;
                     break
                 case CockState.RUNNING_SKILL:
                     this.skillTime -= dt
-                    if (this.skillTime < 0) {
-                        
+                    if (this.skillTime <= essilon) {
+                        this.setState(CockState.IDLE)
                         let skill = this.runningSkill
                         let damage = skill.damage + skill.damage*skill.buff*this.game.random()
                         this.enemy.onDamage(damage)
-
-                        this.setState(CockState.IDLE)
                     }
                     break
                 case CockState.LOSE:
@@ -216,7 +227,7 @@ var logEnable = true;
                     else skills = config.agi_skills
                     let ind = Math.floor(this.game.random() * (skills.length - 0.0001))
                     skill = skills[ind]
-                    if (this.coolDownMap[skill.name] === undefined || this.coolDownMap[skill.name] <= 0)
+                    if (this.coolDownMap[skill.name] === undefined || this.coolDownMap[skill.name] <= essilon)
                     {
                         // play skill
                         this.playSkill(skill.attack)
@@ -353,7 +364,7 @@ var logEnable = true;
                 engine.gameData.index = i;
 
                 
-                if ((engine.cock1.blood > 0 && engine.cock2.blood <= 0) || (engine.cock1.blood <= 0 && engine.cock2.blood > 0)) 
+                if ((engine.cock1.blood > 0 && engine.cock2.blood <= essilon) || (engine.cock1.blood <= essilon && engine.cock2.blood > 0)) 
                 {
                     successCount++
                     
