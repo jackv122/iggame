@@ -316,6 +316,7 @@ func (g *CockStrategy) OnEnterStarting() {
 	fullWin2 := float64(stats.FullWin[string(right.ID)])
 	excellentPayout := float64(stats.Total) / (fullWin1 + fullWin2)
 	excellentPayout = excellentPayout * (1 - fee)
+	excellentPayout = math.Floor(excellentPayout)
 
 	g.gameStateData.PairIndex = g.pairIndex
 	g.gameStateData.ResultBattleIndex = -1
